@@ -1,0 +1,2863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e1a">
+<title>Saltando Barreras — Aventura por la Igualdad</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none; user-select:none; }
+  html, body {
+    width:100%; height:100%; overflow:hidden;
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    background:#0a0e1a; color:#fff;
+    touch-action:auto; overscroll-behavior:none;
+    image-rendering: pixelated;
+  }
+
+  /* ===== MENÚ ===== */
+  #menu {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start; gap:14px;
+    padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+    background:#0a0e1a;
+    background-image:
+      linear-gradient(0deg, rgba(30,41,59,0.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,41,59,0.6) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px;
+    z-index:10; overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    padding-top:calc(20px + env(safe-area-inset-top));
+  }
+  #menu h1 {
+    font-size:clamp(14px,3.6vw,22px); color:#f4c95d;
+    text-align:center; line-height:1.6;
+    text-shadow: 3px 3px 0 #7c2d12, 6px 6px 0 rgba(0,0,0,0.4);
+    letter-spacing:1px; margin-top:8px;
+  }
+  #menu h2 {
+    font-size:clamp(8px,2vw,12px); color:#8fa0c0;
+    text-align:center; font-weight:400; line-height:1.6;
+    text-shadow: 2px 2px 0 #000; margin-bottom:8px;
+  }
+  #menu button {
+    width:min(340px,88vw); padding:16px 12px;
+    border:3px solid #000; border-radius:0;
+    font-size:clamp(9px,2.2vw,11px);
+    font-family:'Press Start 2P', monospace;
+    cursor:pointer; background:#16a34a; color:#fff;
+    box-shadow: 4px 4px 0 #000, inset -2px -2px 0 rgba(0,0,0,0.3);
+    text-transform:uppercase; letter-spacing:1px;
+    touch-action:manipulation;
+  }
+  #menu button.alt { background:#475569; }
+  #menu button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+
+  .worlds-container { width:100%; max-width:640px; }
+  .world-block {
+    margin-bottom:16px; background:#1e293b;
+    border:3px solid #000; border-radius:0; padding:14px;
+    box-shadow: 4px 4px 0 #000;
+  }
+  .world-title {
+    font-size:clamp(9px,2vw,11px); margin-bottom:12px;
+    color:#f4c95d; text-shadow: 2px 2px 0 #000; letter-spacing:1px;
+  }
+  .levels-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .level-btn {
+    padding:12px 6px; border:3px solid #000; border-radius:0;
+    cursor:pointer; background:#334155; color:#fff;
+    font-size:clamp(8px,1.8vw,10px);
+    font-family:'Press Start 2P', monospace;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    box-shadow: 3px 3px 0 #000; text-transform:uppercase;
+    touch-action:manipulation;
+  }
+  .level-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #000; }
+  .level-btn.locked { opacity:0.4; cursor:not-allowed; }
+  .level-btn.done   { background:#16a34a; }
+  .level-btn .stars { font-size:8px; color:#f4c95d; letter-spacing:1px; }
+  .level-btn .diff { font-size:7px; color:#f87171; letter-spacing:1px; }
+
+  /* ===== JUEGO ===== */
+  #game { display:none; position:fixed; inset:0; z-index:20; background:#0a0e1a;
+    touch-action:none; overflow:hidden; }
+  #game.active { display:block; }
+  canvas {
+    display:block; width:100%; height:100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    touch-action:none; pointer-events:none;
+  }
+
+  #hud {
+    position:absolute; top:0; left:0; right:0;
+    height:auto; min-height:44px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 8px; padding-top:calc(6px + env(safe-area-inset-top));
+    font-size:clamp(7px,1.6vw,9px);
+    font-family:'Press Start 2P', monospace;
+    background:#0a0e1a; border-bottom:3px solid #000;
+    z-index:30; pointer-events:none;
+    flex-wrap:wrap; gap:4px;
+  }
+  #hud > div { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  #hud span {
+    background:#1e293b; padding:5px 7px;
+    border:2px solid #000; border-radius:0;
+    white-space:nowrap; box-shadow: 2px 2px 0 #000;
+    letter-spacing:1px;
+  }
+  #hud .pts { color:#f4c95d; }
+  #hud .bad { color:#f87171; }
+  #hud .good { color:#4ade80; }
+  #hud .timer { color:#fbbf24; }
+  #hud .timer.danger {
+    color:#ef4444;
+    animation: timerPulse 0.5s infinite;
+  }
+  @keyframes timerPulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.4; }
+  }
+
+  /* ===== CONTROLES TÁCTILES ===== */
+  #controls {
+    position:absolute; bottom:0; left:0; right:0;
+    height:auto;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    padding:14px 16px calc(20px + env(safe-area-inset-bottom));
+    z-index:30; pointer-events:none;
+    touch-action:none;
+  }
+  .grp { display:flex; gap:12px; pointer-events:auto; }
+  .btn {
+    width:72px; height:72px; border-radius:0;
+    background:#334155; border:3px solid #000;
+    color:#fff; font-size:26px;
+    font-family:'Press Start 2P', monospace;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none; box-shadow: 4px 4px 0 #000;
+    pointer-events:auto; cursor:pointer;
+    -webkit-user-select:none; user-select:none;
+  }
+  .btn.jump { width:80px; height:80px; background:#16a34a; }
+  .btn:active, .btn.pressed {
+    background:#22c55e; transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 #000;
+  }
+
+  /* ===== MENSAJE ===== */
+  #msg {
+    position:absolute; left:50%; bottom:calc(92px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    width:min(760px,78vw); max-width:78vw;
+    background:#1e293b;
+    border:3px solid #000; border-left:6px solid #22d3ee;
+    border-radius:0; padding:9px 14px;
+    font-size:clamp(7px,1.45vw,9px);
+    font-family:'Press Start 2P', monospace;
+    line-height:1.65; letter-spacing:0.35px;
+    z-index:40; opacity:0; transition:opacity 0.3s;
+    pointer-events:none; text-align:center;
+    box-shadow:4px 4px 0 #000;
+    overflow-wrap:anywhere;
+  }
+  @media (min-width:901px) {
+    #msg { bottom:24px; width:min(720px,64vw); max-width:64vw; }
+  }
+  @media (max-width:900px) and (orientation:landscape) {
+    #msg { bottom:calc(88px + env(safe-area-inset-bottom)); width:min(620px,72vw); max-width:72vw; padding:7px 10px; font-size:7px; line-height:1.55; }
+  }
+  #msg.show { opacity:1; }
+  #msg.bad { border-left-color:#ef4444; }
+  #msg.good { border-left-color:#22c55e; }
+
+  /* ===== OVERLAY (modales) ===== */
+  #overlay {
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:flex-start; gap:14px;
+    background:#0a0e1a; z-index:50;
+    padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+    padding-top:calc(20px + env(safe-area-inset-top));
+    text-align:center; overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #overlay.show { display:flex; }
+  #overlay h2 {
+    color:#f4c95d; font-size:clamp(12px,2.8vw,16px);
+    font-family:'Press Start 2P', monospace;
+    text-shadow: 3px 3px 0 #7c2d12;
+    letter-spacing:1px; line-height:1.6;
+    margin-top:8px;
+  }
+  #overlay p {
+    color:#8fa0c0; max-width:460px;
+    font-size:clamp(7px,1.6vw,9px);
+    font-family:'Press Start 2P', monospace;
+    line-height:2; letter-spacing:0.5px;
+  }
+  #overlay button {
+    padding:16px 22px; border:3px solid #000;
+    border-radius:0; background:#16a34a; color:#fff;
+    font-size:clamp(8px,1.8vw,10px);
+    font-family:'Press Start 2P', monospace;
+    cursor:pointer; min-width:220px; width:min(340px,88vw);
+    box-shadow: 4px 4px 0 #000;
+    text-transform:uppercase; letter-spacing:1px;
+    touch-action:manipulation;
+  }
+  #overlay button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+  #overlay button.alt { background:#475569; }
+  #overlay .stars-big {
+    font-size:32px; color:#f4c95d; letter-spacing:8px;
+    text-shadow: 3px 3px 0 #000;
+  }
+  #overlay .empty { color:#334155; }
+
+  #overlay .problem-box {
+    background:#1e293b; border:3px solid #000;
+    border-left:6px solid #ef4444; border-radius:0;
+    padding:16px 18px; max-width:460px; width:100%;
+    text-align:left;
+    font-size:clamp(7px,1.6vw,9px);
+    font-family:'Press Start 2P', monospace;
+    color:#fff; line-height:2; letter-spacing:0.5px;
+    margin:4px 0; box-shadow: 4px 4px 0 #000;
+  }
+  #overlay .problem-box .label {
+    font-size:8px; letter-spacing:2px;
+    color:#f87171; margin-bottom:10px;
+  }
+  #overlay .hint-box {
+    background:#1e293b; border:3px solid #000;
+    border-left:6px solid #22c55e; border-radius:0;
+    padding:16px 18px; max-width:460px; width:100%;
+    text-align:left;
+    font-size:clamp(7px,1.6vw,9px);
+    font-family:'Press Start 2P', monospace;
+    color:#f0f4ff; line-height:2; letter-spacing:0.5px;
+    margin:4px 0; box-shadow: 4px 4px 0 #000;
+  }
+  #overlay .hint-box .label {
+    font-size:8px; letter-spacing:2px;
+    color:#4ade80; margin-bottom:10px;
+  }
+  #overlay .diff-box {
+    background:#1e293b; border:3px solid #000;
+    border-left:6px solid #f4c95d; border-radius:0;
+    padding:12px 16px; max-width:460px; width:100%;
+    text-align:left;
+    font-size:clamp(7px,1.5vw,8px);
+    font-family:'Press Start 2P', monospace;
+    color:#f4c95d; line-height:2; letter-spacing:0.5px;
+    margin:4px 0; box-shadow: 4px 4px 0 #000;
+  }
+  #overlay .time-box {
+    background:#1e293b; border:3px solid #000;
+    border-left:6px solid #ef4444; border-radius:0;
+    padding:12px 16px; max-width:460px; width:100%;
+    text-align:left;
+    font-size:clamp(7px,1.5vw,8px);
+    font-family:'Press Start 2P', monospace;
+    color:#fbbf24; line-height:2; letter-spacing:0.5px;
+    margin:4px 0; box-shadow: 4px 4px 0 #000;
+  }
+
+  ::-webkit-scrollbar { width:8px; }
+  ::-webkit-scrollbar-track { background:#0a0e1a; }
+  ::-webkit-scrollbar-thumb { background:#334155; border:2px solid #000; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 480px) {
+    .btn { width:66px; height:66px; font-size:24px; }
+    .btn.jump { width:74px; height:74px; }
+    #controls { padding:12px 14px calc(18px + env(safe-area-inset-bottom)); }
+    .level-btn { padding:10px 4px; }
+    #overlay button { padding:14px 18px; }
+  }
+  @media (max-height: 500px) {
+    #menu { gap:8px; }
+    #menu button { padding:12px; }
+  }
+
+  /* ===== MOBILE REBUILD v13 ===== */
+  #menu, #overlay { touch-action: pan-y; }
+  #rotate-hint {
+    display:none; position:absolute; inset:0; z-index:120;
+    align-items:center; justify-content:center;
+    padding:24px; background:rgba(10,14,26,0.97);
+    text-align:center;
+    touch-action:none;
+  }
+  #rotate-hint.show { display:flex; }
+  .rotate-card {
+    width:min(420px,90vw); padding:26px 20px;
+    background:#1e293b; border:3px solid #000;
+    box-shadow:6px 6px 0 #000;
+  }
+  .rotate-icon {
+    color:#f4c95d; font-size:54px; line-height:1; margin-bottom:18px;
+  }
+  .rotate-title {
+    color:#f4c95d; font-size:clamp(11px,3vw,16px);
+    line-height:1.7; margin-bottom:12px;
+  }
+  .rotate-text {
+    color:#cbd5e1; font-size:clamp(7px,2vw,10px);
+    line-height:2;
+  }
+  @media (orientation:portrait) and (max-width:900px) {
+    #controls { display:none; }
+  }
+  @media (max-width:900px) and (orientation:landscape) {
+    #controls {
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      gap:10px;
+    }
+    .grp { gap:8px; }
+    .btn { width:64px; height:64px; font-size:22px; }
+    .btn.jump { width:72px; height:72px; }
+    #hud { padding-left:6px; padding-right:6px; }
+    #hud span { padding:4px 5px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>SALTANDO<br>BARRERAS</h1>
+  <h2>AVENTURA POR LA IGUALDAD</h2>
+  <div id="menu-main">
+    <button id="btn-play">JUGAR</button>
+    <button id="btn-help" class="alt">COMO JUGAR</button>
+    <button id="btn-reset" class="alt">BORRAR PROGRESO</button>
+    <div id="help-text" style="display:none; margin-top:16px; font-size:8px; color:#f4c95d; max-width:420px; line-height:2.2; text-align:left; font-family:'Press Start 2P', monospace;">
+      <strong style="color:#22d3ee;">PC:</strong> ← → MOVER · ESPACIO/↑ SALTAR · SHIFT CORRER · R REINICIAR<br>
+      <strong style="color:#22d3ee;">MOVIL:</strong> BOTONES EN PANTALLA<br><br>
+      <strong style="color:#22d3ee;">CONSEJOS:</strong> TODOS SE VEN IGUALES (GRISES).<br>
+      LEE EL TEXTO ANTES DE TOCARLOS.<br>
+      <span style="color:#4ade80;">✅ SOLUCIONES</span> · <span style="color:#f87171;">❌ EMPEORAN</span><br>
+      RECOGE TODOS LOS BUENOS PARA ABRIR LA META.<br><br>
+      <strong style="color:#22d3ee;">CUIDADO:</strong><br>
+      👾 ENEMIGOS · 🦇 VOLADORES · 🎯 TIRAN PROYECTILES<br>
+      🪨 PLATAFORMAS FRAGILES · ⏰ TIEMPO LIMITE (desde 3-1)
+    </div>
+  </div>
+  <div id="menu-worlds" style="display:none;" class="worlds-container"></div>
+</div>
+
+<div id="game">
+  <div id="rotate-hint" aria-hidden="true">
+    <div class="rotate-card">
+      <div class="rotate-icon">↔</div>
+      <div class="rotate-title">GIRA EL TELEFONO</div>
+      <div class="rotate-text">JUEGA EN HORIZONTAL PARA VER TODO EL RECORRIDO Y USAR LOS CONTROLES.</div>
+    </div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="hud">
+    <div>
+      <span id="hud-lives">❤❤❤</span>
+      <span class="good" id="hud-good">✅ 0/0</span>
+      <span class="pts" id="hud-points">⭐ 0</span>
+    </div>
+    <div>
+      <span class="bad" id="hud-bad">❌ 0/5</span>
+      <span class="timer" id="hud-timer" style="display:none;">⏰ 0:00</span>
+      <span id="hud-level">1-1</span>
+      <span id="hud-time">0:00</span>
+    </div>
+  </div>
+  <div id="controls">
+    <div class="grp">
+      <div class="btn" id="c-left">◀</div>
+      <div class="btn" id="c-right">▶</div>
+    </div>
+    <div class="grp">
+      <div class="btn jump" id="c-jump">⬆</div>
+    </div>
+  </div>
+  <div id="msg"></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+// ============================================================
+// SALTANDO BARRERAS v13.0 — reconstrucción móvil conservando el juego completo
+// ============================================================
+(function(){
+'use strict';
+
+// ---------- UTILIDADES ----------
+function $(id) { return document.getElementById(id); }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function mulberry32(a) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function aabb(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
+}
+function formatTime(s) {
+  if (s < 0) s = 0;
+  var m = Math.floor(s / 60);
+  var sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+// ---------- DOM ----------
+var menu       = $('menu');
+var menuMain   = $('menu-main');
+var menuWorlds = $('menu-worlds');
+var gameDiv    = $('game');
+var cv         = $('cv');
+var ctx        = cv.getContext('2d');
+var hudLives   = $('hud-lives');
+var hudGood    = $('hud-good');
+var hudPoints  = $('hud-points');
+var hudBad     = $('hud-bad');
+var hudTimer   = $('hud-timer');
+var hudLevel   = $('hud-level');
+var hudTime    = $('hud-time');
+var msgBox     = $('msg');
+var overlay    = $('overlay');
+var rotateHint = $('rotate-hint');
+
+// ---------- CONSTANTES ----------
+var GRAVITY    = 0.6;
+var JUMP       = -12.5;
+var SPEED      = 4;
+var RUN        = 6.5;
+var MAX_FALL   = 16;
+var PW         = 30;
+var PH         = 40;
+var GROUND_Y   = 460;
+var POINTS_GOOD = 100;
+var POINTS_BAD  = -50;
+var MAX_BAD     = 5;
+var INVULN_TIME = 1.2;
+var TILE = 20;
+
+// Máximos alcanzables con un salto desde el suelo
+// Con JUMP = -12.5 y GRAVITY = 0.6:
+//   Altura máx = JUMP² / (2*GRAVITY) ≈ 130 px
+//   Tiempo en el aire = 2*|JUMP|/GRAVITY ≈ 41 frames
+//   Distancia horizontal máx (corriendo) = 41 * 6.5 ≈ 265 px
+// Añadimos un margen de seguridad del 60%
+var MAX_JUMP_HEIGHT = 130;
+var MAX_JUMP_DISTANCE = 265;
+var SAFE_JUMP_HEIGHT = MAX_JUMP_HEIGHT * 0.7; // 91
+var SAFE_JUMP_DISTANCE = MAX_JUMP_DISTANCE * 0.7; // 185
+
+// ============================================================
+// CONTENIDO EDUCATIVO
+// ============================================================
+var WORLDS = [
+  {
+    bg: '#064e3b',
+    skyTop: '#064e3b',
+    skyBot: '#0a0e1a',
+    ambient: 'leaves',
+    bgLayer1: '#0d5f47',
+    bgLayer2: '#0a4a37',
+    silhouette: 'city',
+    levels: [
+      {
+        problem: 'En tu escuela, un compañero en silla de ruedas no puede entrar al edificio porque solo hay escaleras. Nadie ha dicho nada al respecto.',
+        good: [
+          'Hablar con la dirección para pedir una rampa',
+          'Ofrecer acompañarlo cuando lo necesite',
+          'Invitar a los compañeros a firmar una petición'
+        ],
+        bad: [
+          'Ignorar la situación y seguir con lo tuyo',
+          'Decir que "es problema de él, no mío"',
+          'Burlarse de quien lo intenta ayudar'
+        ]
+      },
+      {
+        problem: 'En tu barrio, las aceras no tienen rampas y las personas mayores tropiezan. Los vecinos se quejan pero nadie hace nada.',
+        good: [
+          'Organizar una reunión vecinal para proponer rampas',
+          'Documentar los puntos peligrosos con fotos',
+          'Escribir al ayuntamiento solicitando mejoras'
+        ],
+        bad: [
+          'Decir que "siempre ha sido así, no hay nada que hacer"',
+          'Culpar a los mayores por salir a la calle',
+          'Reírse cuando alguien tropieza'
+        ]
+      },
+      {
+        problem: 'En tu salón hay estudiantes de distintos países. Algunos compañeros se burlan de su acento y forma de vestir.',
+        good: [
+          'Defender a los compañeros cuando los molestan',
+          'Organizar un día para compartir culturas',
+          'Aprender palabras de sus idiomas y mostrar interés'
+        ],
+        bad: [
+          'Reírte también para "no quedar mal"',
+          'Decir que "mejor se adapten a nuestras costumbres"',
+          'Ignorar cuando alguien es excluido'
+        ]
+      },
+      {
+        problem: 'El club deportivo de tu ciudad prohíbe la entrada a jóvenes con discapacidad. El argumento es que "no pueden competir al mismo nivel".',
+        good: [
+          'Reunir firmas para exigir la inclusión',
+          'Buscar asesoría legal contra la discriminación',
+          'Visibilizar el caso en redes y medios'
+        ],
+        bad: [
+          'Aceptar que "cada quien en su lugar"',
+          'Decir que "ellos tienen sus propios torneos"',
+          'Callar por miedo a las represalias'
+        ]
+      }
+    ]
+  },
+  {
+    bg: '#1e3a8a',
+    skyTop: '#1e3a8a', skyBot: '#0a0e1a',
+    ambient: 'sparks',
+    bgLayer1: '#1e40af', bgLayer2: '#172554',
+    silhouette: 'castle',
+    levels: [
+      {
+        problem: 'En una empresa, las mujeres ganan menos que los hombres por el mismo trabajo. Nadie lo denuncia porque "es normal".',
+        good: [
+          'Denunciar la desigualdad salarial ante las autoridades',
+          'Apoyar a las compañeras para exigir igualdad',
+          'Investigar y difundir datos sobre la brecha salarial'
+        ],
+        bad: [
+          'Decir que "las mujeres trabajan menos"',
+          'Callar para no perder el empleo',
+          'Justificar diciendo "así ha sido siempre"'
+        ]
+      },
+      {
+        problem: 'En tu universidad, las becas se dan solo a personas de ciertas zonas, dejando fuera a estudiantes de bajos recursos.',
+        good: [
+          'Proponer becas por mérito y necesidad',
+          'Organizar protestas pacíficas para revisar el sistema',
+          'Ayudar a estudiantes afectados a apelar'
+        ],
+        bad: [
+          'Decir que "ellos no se esfuerzan lo suficiente"',
+          'Aprovechar la beca aunque no la necesites',
+          'Ignorar el problema porque "no te afecta"'
+        ]
+      },
+      {
+        problem: 'En una comunidad, el agua potable se distribuye primero a los barrios ricos y luego a los pobres, que a veces no reciben nada.',
+        good: [
+          'Exigir una distribución equitativa del agua',
+          'Documentar y denunciar el problema',
+          'Organizar ollas comunitarias mientras se soluciona'
+        ],
+        bad: [
+          'Decir que "los ricos pagan más impuestos, es justo"',
+          'Robar agua a los vecinos para tu propio barrio',
+          'Culpar a los pobres por "no cuidar el agua"'
+        ]
+      },
+      {
+        problem: 'Un gobierno decide que solo las personas con ciertos estudios pueden votar, excluyendo a la mayoría de la población.',
+        good: [
+          'Movilizar a la sociedad contra la medida',
+          'Exigir transparencia en las decisiones',
+          'Informar a los afectados sobre sus derechos'
+        ],
+        bad: [
+          'Aceptar que "ellos saben más, deben decidir"',
+          'Quedarte callado por miedo',
+          'Difundir mentiras para crear división'
+        ]
+      }
+    ]
+  },
+  {
+    bg: '#581c87',
+    skyTop: '#581c87', skyBot: '#0a0e1a',
+    ambient: 'petals',
+    bgLayer1: '#7e22ce', bgLayer2: '#3b0764',
+    silhouette: 'valley',
+    levels: [
+      {
+        problem: 'En tu casa, tu hermana debe lavar los platos y tú no, solo "porque eres hombre". Ella también quiere descansar y estudiar.',
+        good: [
+          'Hablar con tu familia para repartir tareas',
+          'Asumir tareas tradicionalmente "femeninas"',
+          'Defender a tu hermana cuando la sobrecargan'
+        ],
+        bad: [
+          'Decir que "es su trabajo, no el mío"',
+          'Burlarte si un amigo cocina o limpia',
+          'Justificar con "así me enseñaron"'
+        ]
+      },
+      {
+        problem: 'Tu amiga quiere estudiar ingeniería pero su familia dice que "eso no es para mujeres". Ella está a punto de renunciar.',
+        good: [
+          'Animar a tu amiga a seguir su sueño',
+          'Buscar referentes femeninos en esa carrera',
+          'Hablar con la familia para mostrarle ejemplos'
+        ],
+        bad: [
+          'Decirle que "tal vez tengan razón"',
+          'Reírte de sus aspiraciones',
+          'Convencerla de estudiar algo "más apropiado"'
+        ]
+      },
+      {
+        problem: 'En una reunión, cuando una mujer propone una idea es ignorada; cuando un hombre repite lo mismo, todos aplauden.',
+        good: [
+          'Señalar el sesgo en la reunión',
+          'Amplificar la idea mencionando a su autora',
+          'Apoyar que las mujeres tengan voz y voto'
+        ],
+        bad: [
+          'Aplaudir solo al hombre para "no incomodar"',
+          'Pensar que "tal vez la idea era mejor del otro"',
+          'Decir que "las mujeres son muy emocionales"'
+        ]
+      },
+      {
+        problem: 'Una empresa despide a una mujer por quedar embarazada, argumentando "pérdida de productividad". Es legal en su país.',
+        good: [
+          'Exigir leyes que protejan a las madres',
+          'Apoyar a la afectada con asesoría legal',
+          'Boicotear los productos de la empresa'
+        ],
+        bad: [
+          'Decir que "es su responsabilidad"',
+          'Aceptar que "las empresas buscan lo mejor para sí"',
+          'Evitar contratar mujeres por miedo'
+        ]
+      }
+    ]
+  },
+  {
+    bg: '#78350f',
+    skyTop: '#78350f', skyBot: '#0a0e1a',
+    ambient: 'embers',
+    bgLayer1: '#b45309', bgLayer2: '#451a03',
+    silhouette: 'citadel',
+    levels: [
+      {
+        problem: 'En tu ciudad, la mitad del presupuesto se va a zonas ricas, mientras los barrios pobres no tienen hospital ni escuela.',
+        good: [
+          'Exigir presupuestos participativos',
+          'Organizar a los vecinos para pedir servicios',
+          'Auditar cómo se gastan los recursos públicos'
+        ],
+        bad: [
+          'Decir que "los pobres deben esforzarse más"',
+          'Mudarte a la zona rica y olvidarte',
+          'Vender tu voto por un favor pequeño'
+        ]
+      },
+      {
+        problem: 'Un joven sin recursos es condenado por un delito menor, mientras un empresario con dinero evita la cárcel por un delito mayor.',
+        good: [
+          'Denunciar la desigualdad ante la justicia',
+          'Apoyar a organizaciones que defienden derechos',
+          'Difundir el caso para generar presión pública'
+        ],
+        bad: [
+          'Decir que "cada quien tiene lo que se merece"',
+          'Callar porque "no es tu problema"',
+          'Justificar la corrupción como "normal"'
+        ]
+      },
+      {
+        problem: 'Los estudiantes de zonas rurales deben caminar 3 horas para llegar a la escuela más cercana. Muchos abandonan.',
+        good: [
+          'Donar o gestionar transporte escolar',
+          'Exigir al gobierno la construcción de escuelas',
+          'Ofrecer clases virtuales o material educativo'
+        ],
+        bad: [
+          'Decir que "si quieren estudiar, que se muden"',
+          'Ignorar porque "tú ya terminaste la escuela"',
+          'Culpar a las familias por su situación'
+        ]
+      },
+      {
+        problem: 'Una sola familia controla toda la tierra de una región. Los campesinos no tienen dónde sembrar y migran forzadamente.',
+        good: [
+          'Apoyar una reforma agraria justa',
+          'Organizar cooperativas de pequeños productores',
+          'Denunciar el acaparamiento de tierras'
+        ],
+        bad: [
+          'Decir que "el dueño tiene derecho a todo"',
+          'Aceptar la migración como "algo natural"',
+          'Culpar a los campesinos por "no organizarse"'
+        ]
+      }
+    ]
+  },
+  {
+    bg: '#7f1d1d',
+    skyTop: '#7f1d1d', skyBot: '#0a0e1a',
+    ambient: 'static',
+    bgLayer1: '#991b1b', bgLayer2: '#450a0a',
+    silhouette: 'tower',
+    levels: [
+      {
+        problem: 'En redes sociales, un mensaje viral afirma que "cierto grupo causa todos los problemas". Muchos lo comparten sin verificar.',
+        good: [
+          'Verificar la fuente antes de compartir',
+          'Buscar información en medios confiables',
+          'Cuestionar mensajes que generalizan y dividen'
+        ],
+        bad: [
+          'Compartir el mensaje porque "lo dijo un amigo"',
+          'Creer cualquier cosa que confirme tus prejuicios',
+          'Repetir el mensaje sin pensar'
+        ]
+      },
+      {
+        problem: 'Un político afirma que "los inmigrantes quitan empleos" aunque las estadísticas muestran lo contrario.',
+        good: [
+          'Buscar datos oficiales y verificar las afirmaciones',
+          'Contrastar con múltiples fuentes',
+          'Explicar a otros por qué la afirmación es falsa'
+        ],
+        bad: [
+          'Creer al político porque "los medios siempre mienten"',
+          'Discutir con datos inventados',
+          'Repetir la mentira para "defender tu lado"'
+        ]
+      },
+      {
+        problem: 'Un anuncio promete "ganar dinero fácil sin trabajar". Tus amigos están interesados en invertir.',
+        good: [
+          'Investigar si es una estafa piramidal',
+          'Advertir a tus amigos antes de invertir',
+          'Enseñar a identificar señales de fraude'
+        ],
+        bad: [
+          'Invertir sin investigar "porque suena bien"',
+          'Convencer a otros de invertir para ganar comisión',
+          'Ignorar las señales de advertencia'
+        ]
+      },
+      {
+        problem: 'Un gobierno controla toda la información: censura medios, encarcela periodistas y difunde propaganda.',
+        good: [
+          'Apoyar el periodismo independiente',
+          'Enseñar a otros a verificar información',
+          'Exigir libertad de prensa y expresión'
+        ],
+        bad: [
+          'Aceptar la versión oficial sin cuestionar',
+          'Delatar a quienes piensan distinto',
+          'Difundir propaganda para "estar del lado seguro"'
+        ]
+      }
+    ]
+  }
+];
+
+// ============================================================
+// CONFIGURACIÓN DE DIFICULTAD
+// ============================================================
+function getDifficulty(worldIdx, levelIdx) {
+  var diff = worldIdx * 4 + levelIdx + 1;
+
+  return {
+    diff: diff,
+    levelWidth: 3800 + diff * 180,
+    numGaps: clamp(3 + Math.floor(diff / 2.5), 3, 9),
+    gapWidthMin: 60 + diff * 3,
+    gapWidthMax: 80 + diff * 5,
+    zones: clamp(4 + Math.floor(diff / 3), 4, 9),
+    walls: clamp(2 + Math.floor(diff / 1.8), 2, 12),
+    hazards: clamp(2 + Math.floor(diff / 1.5), 2, 14),
+    hazardWidthMin: 40 + diff * 2,
+    hazardWidthMax: 60 + diff * 3,
+    enemiesGround: clamp(2 + Math.floor(diff * 0.6), 2, 12),
+    enemiesFlying: diff >= 5 ? clamp(Math.floor((diff - 3) * 0.6), 1, 8) : 0,
+    enemiesShooter: diff >= 8 ? clamp(Math.floor((diff - 6) * 0.5), 1, 6) : 0,
+    enemySpeedBase: 0.8 + diff * 0.08,
+    enemyRange: 80 + diff * 6,
+    fragilePlatforms: diff >= 3 ? clamp(Math.floor((diff - 1) * 0.8), 1, 10) : 0,
+    platWidthMin: Math.max(50, 100 - diff * 2),
+    platWidthMax: Math.max(70, 140 - diff * 2),
+    verticalSpread: 120 + diff * 8,
+    timeLimit: diff >= 8 ? (240 - (diff - 8) * 8) : 0,
+    timeLimitActive: diff >= 8
+  };
+}
+
+// ============================================================
+// SAVE
+// ============================================================
+var SAVE_KEY = 'saltando_barreras_v12';
+function defaultSave() {
+  var wp = [];
+  for (var i = 0; i < 5; i++) {
+    wp.push({ done:[false,false,false,false], stars:[0,0,0,0], points:[0,0,0,0] });
+  }
+  return { progress: wp, unlocked: 1, version: 12 };
+}
+function normalizeSave(candidate) {
+  var clean = defaultSave();
+  if (!candidate || typeof candidate !== 'object') return clean;
+
+  clean.unlocked = clamp(parseInt(candidate.unlocked, 10) || 1, 1, 5);
+  clean.version = 12;
+
+  if (!Array.isArray(candidate.progress)) return clean;
+  for (var w = 0; w < 5; w++) {
+    var srcWorld = candidate.progress[w];
+    if (!srcWorld || typeof srcWorld !== 'object') continue;
+
+    for (var l = 0; l < 4; l++) {
+      clean.progress[w].done[l] = Array.isArray(srcWorld.done) ? !!srcWorld.done[l] : false;
+      clean.progress[w].stars[l] = Array.isArray(srcWorld.stars) ? clamp(parseInt(srcWorld.stars[l], 10) || 0, 0, 3) : 0;
+      clean.progress[w].points[l] = Array.isArray(srcWorld.points) ? Math.max(0, Number(srcWorld.points[l]) || 0) : 0;
+    }
+  }
+
+  // El progreso de un mundo solo puede desbloquearse de forma coherente.
+  for (var wi = 1; wi < 5; wi++) {
+    if (clean.progress[wi - 1].done[3]) clean.unlocked = Math.max(clean.unlocked, wi + 1);
+  }
+  return clean;
+}
+function loadSave() {
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return normalizeSave(JSON.parse(raw));
+  } catch(e) {}
+  return defaultSave();
+}
+function persistSave() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e) {}
+}
+var save = loadSave();
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+var W = 0, H = 0;
+var camX = 0;
+var keys = {};
+var touch = { left:false, right:false, jump:false };
+var jumpQueued = false;
+var viewportPortrait = false;
+var VIEW_H = 540;
+var MIN_VIEW_W = 960;
+var COYOTE_FRAMES = 8;
+var JUMP_BUFFER_FRAMES = 8;
+
+var level = null;
+var player = null;
+var particles = [];
+var floaters = [];
+var screenFlash = null;
+var projectiles = [];
+var ambientParticles = [];
+
+var lives = 3;
+var goodGot = 0;
+var goodTotal = 0;
+var points = 0;
+var badCount = 0;
+var elapsed = 0;
+var timeRemaining = 0;
+var startTime = 0;
+var lastCheckpoint = { x:60, y:GROUND_Y-100 };
+
+var running = false;
+var paused = false;
+var currentWorld = 0;
+var currentLevel = 0;
+
+var lastT = 0;
+var rafId = null;
+var respawnTimer = null;
+var msgTimer = null;
+var ambientTimer = 0;
+var levelSessionId = 0;
+var hiddenAt = 0;
+var resumeAfterVisibility = false;
+
+// ============================================================
+// RESIZE
+// ============================================================
+function resize() {
+  // El mundo usa una resolución lógica fija en vertical. La anchura lógica
+  // se adapta al formato de la pantalla, pero nunca modifica la geometría del nivel.
+  var vw = window.innerWidth || 960;
+  var vh = window.innerHeight || 540;
+  if (window.visualViewport) {
+    vw = window.visualViewport.width || vw;
+    vh = window.visualViewport.height || vh;
+  }
+
+  viewportPortrait = vh > vw * 1.08;
+
+  // Resolución lógica de juego. En horizontal puede crecer para aprovechar
+  // pantallas ultrapanorámicas sin cambiar la altura de salto ni el suelo.
+  H = VIEW_H;
+  W = Math.max(MIN_VIEW_W, VIEW_H * (vw / Math.max(1, vh)));
+  GROUND_Y = 460;
+
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(1, Math.round(W * dpr));
+  cv.height = Math.max(1, Math.round(H * dpr));
+
+  // Encajamos la resolución lógica en el viewport sin deformar el pixel art.
+  var scale = Math.min(vw / W, vh / H);
+  if (viewportPortrait) scale = Math.min(scale, vw / W);
+  var drawW = Math.floor(W * scale);
+  var drawH = Math.floor(H * scale);
+  cv.style.width = drawW + 'px';
+  cv.style.height = drawH + 'px';
+  cv.style.position = 'absolute';
+  cv.style.left = Math.floor((vw - drawW) / 2) + 'px';
+  cv.style.top = Math.floor((vh - drawH) / 2) + 'px';
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+
+  if (rotateHint) {
+    rotateHint.classList.toggle('show', viewportPortrait && gameDiv.classList.contains('active'));
+  }
+}
+
+var resizeTimer = null;
+function scheduleResize(delay) {
+  if (resizeTimer !== null) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    resizeTimer = null;
+    resize();
+  }, delay || 80);
+}
+window.addEventListener('resize', function() { scheduleResize(80); });
+window.addEventListener('orientationchange', function() { scheduleResize(220); });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', function() { scheduleResize(100); });
+}
+
+// ============================================================
+// GENERACIÓN DE NIVEL
+// ============================================================
+function buildLevel(worldIdx, levelIdx) {
+  var seedBase = worldIdx * 4 + levelIdx + 1;
+  var cfg = getDifficulty(worldIdx, levelIdx);
+  var levelWidth = cfg.levelWidth;
+  var rng = mulberry32(seedBase * 99999);
+  var data = WORLDS[worldIdx].levels[levelIdx];
+
+  var platforms = [];
+  var walls = [];
+  var enemies = [];
+  var hazards = [];
+  var checkpoints = [];
+  var goodAdvices = [];
+  var badAdvices = [];
+  var goal = null;
+
+  function overlapsRect(a, b, pad) {
+    var p = pad || 0;
+    return a.x - p < b.x + b.w && a.x + a.w + p > b.x &&
+           a.y - p < b.y + b.h && a.y + a.h + p > b.y;
+  }
+
+  function groundAt(x, margin) {
+    var m = margin || 0;
+    for (var gi = 0; gi < platforms.length; gi++) {
+      var gp = platforms[gi];
+      if (gp.kind === 'ground' && x - m >= gp.x && x + m <= gp.x + gp.w) return gp;
+    }
+    return null;
+  }
+
+  function groundCandidate(targetX, width, minDistance, avoidRects) {
+    var candidates = [];
+    var offsets = [0, -120, 120, -240, 240, -360, 360, -520, 520, -700, 700];
+    for (var oi = 0; oi < offsets.length; oi++) {
+      var x = clamp(targetX + offsets[oi], 40, levelWidth - width - 40);
+      var gp = groundAt(x, width / 2 + 4);
+      if (!gp) continue;
+      var rect = {x:x, y:GROUND_Y-70, w:width, h:60};
+      var clear = true;
+      for (var ri = 0; ri < (avoidRects || []).length; ri++) {
+        if (overlapsRect(rect, avoidRects[ri], 18)) { clear = false; break; }
+      }
+      if (!clear) continue;
+      if (Math.abs(x - 60) < minDistance) continue;
+      candidates.push(x);
+    }
+    if (!candidates.length) {
+      var gp2 = groundAt(targetX, width / 2 + 2);
+      return gp2 ? clamp(targetX, gp2.x + 4, gp2.x + gp2.w - width - 4) : null;
+    }
+    return candidates[Math.floor(rng() * candidates.length)];
+  }
+
+  function floatingCandidate(targetX, width, heightFromGround) {
+    var maxH = Math.min(SAFE_JUMP_HEIGHT - 8, 86);
+    var h = clamp(heightFromGround || 72, 55, maxH);
+    var y = GROUND_Y - h;
+    var offsets = [0, -50, 50, -100, 100, -150, 150];
+    for (var oi = 0; oi < offsets.length; oi++) {
+      var x = clamp(targetX + offsets[oi], 100, levelWidth - width - 100);
+      var r = {x:x, y:y, w:width, h:20};
+      var clear = true;
+      for (var pi = 0; pi < platforms.length; pi++) {
+        if (overlapsRect(r, platforms[pi], 14)) { clear = false; break; }
+      }
+      if (!clear) continue;
+      return {x:x, y:y, w:width, h:20};
+    }
+    return null;
+  }
+
+  function adviceCandidate(targetX, preferFloat, occupied) {
+    var width = 34;
+    if (preferFloat) {
+      var fp = floatingCandidate(targetX, 105, 62 + rng() * 18);
+      if (fp) {
+        platforms.push({x:fp.x, y:fp.y, w:fp.w, h:fp.h, kind:'float', role:'advice'});
+        var ax = fp.x + fp.w / 2;
+        var ay = fp.y - 43;
+        var ok = true;
+        for (var oi = 0; oi < occupied.length; oi++) {
+          if (Math.abs(occupied[oi].x - ax) < 120 && Math.abs(occupied[oi].y - ay) < 85) { ok = false; break; }
+        }
+        if (ok) return {x:ax, y:ay, platform:fp};
+        platforms.pop();
+      }
+    }
+
+    var gx = groundCandidate(targetX, 60, 180, occupied);
+    if (gx !== null) {
+      var g = groundAt(gx, 30);
+      var gy = GROUND_Y - 46;
+      return {x:gx + 30, y:gy, platform:g};
+    }
+    return {x:clamp(targetX, 120, levelWidth-120), y:GROUND_Y-46, platform:null};
+  }
+
+  // ---- SUELO CON POZOS ----
+  var cursor = 0;
+  var numGaps = cfg.numGaps;
+  var gapPositions = [];
+  for (var i = 0; i < numGaps; i++) {
+    var gx = 700 + i * (levelWidth - 1200) / Math.max(1, numGaps - 1);
+    var gw = cfg.gapWidthMin + rng() * (cfg.gapWidthMax - cfg.gapWidthMin);
+    gapPositions.push({ x: gx, w: gw });
+  }
+  for (var g = 0; g < gapPositions.length; g++) {
+    var gap = gapPositions[g];
+    if (gap.x > cursor) {
+      platforms.push({ x: cursor, y: GROUND_Y, w: gap.x - cursor, h: 200, kind:'ground' });
+    }
+    cursor = gap.x + gap.w;
+  }
+  if (cursor < levelWidth) {
+    platforms.push({ x: cursor, y: GROUND_Y, w: levelWidth - cursor, h: 200, kind:'ground' });
+  }
+
+  // ---- ZONAS DE PLATAFORMAS ----
+  // Las plataformas altas quedan dentro de la altura real del salto y se separan
+  // de forma suficiente para evitar cadenas imposibles o superpuestas.
+  var zones = cfg.zones;
+  for (var z = 0; z < zones; z++) {
+    var zoneProgress = (z + 0.5) / zones;
+    var zoneX = 520 + zoneProgress * (levelWidth - 1040);
+    var pw = cfg.platWidthMin + rng() * (cfg.platWidthMax - cfg.platWidthMin);
+    pw = clamp(pw, 72, 130);
+    var pattern = z % 2;
+    var h1 = 58 + rng() * 24;
+    var first = floatingCandidate(zoneX, pw, h1);
+    if (!first) continue;
+    platforms.push({x:first.x, y:first.y, w:first.w, h:first.h, kind:'float', role:'course'});
+
+    if (pattern === 0) {
+      var gapX = first.x + first.w + 28 + rng() * 26;
+      var h2 = clamp(h1 + (rng() * 16 - 8), 55, 84);
+      var second = floatingCandidate(gapX, pw, h2);
+      if (second && Math.abs(second.x - first.x) <= SAFE_JUMP_DISTANCE * 0.72) {
+        platforms.push({x:second.x, y:second.y, w:second.w, h:second.h, kind:'float', role:'course'});
+      }
+    }
+  }
+
+  // ---- PLATAFORMAS FRÁGILES ----
+  for (var fp = 0; fp < cfg.fragilePlatforms; fp++) {
+    var fTarget = 620 + (fp + 0.5) * (levelWidth - 1240) / Math.max(1, cfg.fragilePlatforms);
+    var fWidth = clamp(78 + rng() * 40, 72, 118);
+    var fragile = floatingCandidate(fTarget, fWidth, 58 + rng() * 18);
+    if (fragile) {
+      var overlaps = false;
+      for (var fpi = 0; fpi < platforms.length; fpi++) {
+        if (overlapsRect(fragile, platforms[fpi], 8)) { overlaps = true; break; }
+      }
+      if (!overlaps) {
+        platforms.push({
+          x: fragile.x, y: fragile.y, w: fragile.w, h: 20,
+          kind:'fragile', state:'idle', timer:0, respawnTimer:0,
+          origX:fragile.x, origY:fragile.y, fallVY:0
+        });
+      }
+    }
+  }
+
+  // ---- MUROS ----
+  for (var wm = 0; wm < cfg.walls; wm++) {
+    var wx = 820 + wm * (levelWidth - 1500) / Math.max(1, cfg.walls) + rng() * 70;
+    var wallH = 45 + rng() * (25 + cfg.diff * 3.2);
+    var gpw = groundAt(wx, 28);
+    if (!gpw || wx > gpw.x + gpw.w - 40) continue;
+    walls.push({ x:wx, y:GROUND_Y-wallH, w:Math.min(32, 20 + cfg.diff*0.45), h:wallH });
+  }
+
+  // ---- PELIGROS ----
+  for (var hz = 0; hz < cfg.hazards; hz++) {
+    var hTarget = 900 + (hz + 0.5) * (levelWidth - 1500) / Math.max(1, cfg.hazards);
+    var hWidth = clamp(cfg.hazardWidthMin + rng() * (cfg.hazardWidthMax-cfg.hazardWidthMin), 40, 100);
+    var hg = groundAt(hTarget, hWidth/2 + 2);
+    if (!hg) continue;
+    var hx = clamp(hTarget - hWidth/2, hg.x + 6, hg.x + hg.w - hWidth - 6);
+    hazards.push({x:hx, y:GROUND_Y-18, w:hWidth, h:18, type:rng()>0.5?'fire':'spike'});
+  }
+  if (cfg.diff >= 8) {
+    var numFloatHaz = clamp(Math.floor(cfg.diff / 4), 1, 5);
+    for (var fhz = 0; fhz < numFloatHaz; fhz++) {
+      var fx = 700 + (fhz + 0.5) * (levelWidth - 1100) / numFloatHaz + rng()*80;
+      var fy = GROUND_Y - 58 - rng()*42;
+      hazards.push({x:fx, y:fy, w:40+rng()*30, h:14, type:'spike'});
+    }
+  }
+
+  // ---- ENEMIGOS TERRESTRES ----
+  for (var e = 0; e < cfg.enemiesGround; e++) {
+    var exTarget = 760 + (e + 0.5) * (levelWidth - 1460) / Math.max(1,cfg.enemiesGround);
+    var ex = exTarget + rng()*70 - 35;
+    var eg = groundAt(ex, 20);
+    if (!eg) continue;
+    ex = clamp(ex, eg.x + 30, eg.x + eg.w - 62);
+    enemies.push({
+      kind:'ground', x:ex, y:GROUND_Y-32, w:32, h:32,
+      minX:ex-cfg.enemyRange, maxX:ex+cfg.enemyRange,
+      vx:(rng()<0.5?-1:1)*(cfg.enemySpeedBase+rng()*0.5),
+      alive:true, gone:false, fade:0, type:seedBase%3,
+      jumper:cfg.diff>=12 && rng()<0.3, jumpTimer:rng()*2,
+      baseY:GROUND_Y-32, vy:0, walkFrame:0
+    });
+  }
+
+  // ---- ENEMIGOS VOLADORES ----
+  for (var ef = 0; ef < cfg.enemiesFlying; ef++) {
+    var efx = 900 + (ef + 0.5) * (levelWidth - 1600) / Math.max(1,cfg.enemiesFlying) + rng()*100;
+    var efy = GROUND_Y - 135 - rng()*55;
+    enemies.push({
+      kind:'flying', x:efx, y:efy, w:28, h:24, baseY:efy,
+      phase:rng()*6.28, amplitude:24+rng()*28,
+      vx:(rng()<0.5?-1:1)*(1.2+cfg.diff*0.05), minX:efx-130, maxX:efx+130,
+      alive:true, gone:false, fade:0, type:seedBase%3
+    });
+  }
+
+  // ---- ENEMIGOS QUE DISPARAN ----
+  for (var es = 0; es < cfg.enemiesShooter; es++) {
+    var esTarget = 1100 + (es + 0.5) * (levelWidth - 1850) / Math.max(1,cfg.enemiesShooter);
+    var esx = esTarget + rng()*80-40;
+    var esg = groundAt(esx, 20);
+    if (!esg) continue;
+    esx = clamp(esx, esg.x+30, esg.x+esg.w-62);
+    enemies.push({
+      kind:'shooter', x:esx, y:GROUND_Y-32, w:32, h:32,
+      minX:esx-40, maxX:esx+40, vx:0.4, alive:true, gone:false, fade:0,
+      type:seedBase%3, shootCooldown:0, shootRange:350,
+      shootInterval:1.8-cfg.diff*0.05
+    });
+  }
+
+  // ---- CONSEJOS BUENOS ----
+  var goodPhrases = data.good;
+  goodTotal = goodPhrases.length;
+  var occupiedAdvice = [];
+  for (var gg = 0; gg < goodPhrases.length; gg++) {
+    var progress = (gg + 1) / (goodPhrases.length + 1);
+    var target = 640 + progress * (levelWidth - 1280);
+    var ac = adviceCandidate(target, gg % 2 === 0, occupiedAdvice);
+    ac.x = clamp(ac.x, 100, levelWidth-100);
+    occupiedAdvice.push({x:ac.x, y:ac.y, w:34, h:34});
+    goodAdvices.push({x:ac.x, y:ac.y, w:34, h:34, text:goodPhrases[gg], taken:false});
+  }
+
+  // ---- CONSEJOS MALOS ----
+  var badPhrases = data.bad;
+  var numBad = badPhrases.length + 2 + Math.floor(cfg.diff/5);
+  for (var b = 0; b < numBad; b++) {
+    var bp = (b + 0.5) / numBad;
+    var bTarget = 520 + bp * (levelWidth - 980);
+    var preferFloatBad = b % 3 === 2;
+    var bc = adviceCandidate(bTarget, preferFloatBad, occupiedAdvice);
+    bc.x = clamp(bc.x, 100, levelWidth-100);
+    var tooClose = false;
+    for (var ba = 0; ba < occupiedAdvice.length; ba++) {
+      if (Math.abs(occupiedAdvice[ba].x-bc.x)<72 && Math.abs(occupiedAdvice[ba].y-bc.y)<55) { tooClose=true; break; }
+    }
+    if (tooClose) {
+      var retry = adviceCandidate(bTarget+150, preferFloatBad, occupiedAdvice);
+      if (retry) bc=retry;
+    }
+    occupiedAdvice.push({x:bc.x,y:bc.y,w:34,h:34});
+    badAdvices.push({x:bc.x,y:bc.y,w:34,h:34,text:badPhrases[b%badPhrases.length],taken:false});
+  }
+
+  // ---- CHECKPOINTS ----
+  // Nunca se colocan dentro de un pozo: buscamos un punto real de suelo cercano.
+  var checkpointTargets = [80];
+  var numCps = cfg.diff >= 12 ? 4 : 3;
+  for (var cp = 1; cp < numCps; cp++) checkpointTargets.push(levelWidth*(cp/numCps));
+  var checkpointRects = [];
+  for (var cpi = 0; cpi < checkpointTargets.length; cpi++) {
+    var cpx = checkpointTargets[cpi];
+    if (cpi === 0) cpx = 80;
+    else {
+      var found = groundCandidate(cpx, 24, 200, hazards.concat(walls));
+      if (found !== null) cpx = found;
+    }
+    var cpGround = groundAt(cpx, 10);
+    if (!cpGround) continue;
+    cpx = clamp(cpx, cpGround.x+4, cpGround.x+cpGround.w-24-4);
+    var cpObj = {x:cpx,y:GROUND_Y-60,w:20,h:60,active:cpi===0};
+    checkpointRects.push(cpObj);
+  }
+  checkpoints = checkpointRects;
+
+  // ---- META ----
+  goal = {x:levelWidth-150,y:GROUND_Y-100,w:50,h:100,locked:true};
+
+  return {
+    width:levelWidth,
+    platforms:platforms,
+    walls:walls,
+    enemies:enemies,
+    hazards:hazards,
+    checkpoints:checkpoints,
+    goodAdvices:goodAdvices,
+    badAdvices:badAdvices,
+    goal:goal,
+    config:cfg
+  };
+}
+
+// ============================================================
+// INICIO DE NIVEL
+// ============================================================
+function startLevel(worldIdx, levelIdx) {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  if (respawnTimer !== null) { clearTimeout(respawnTimer); respawnTimer = null; }
+  if (msgTimer !== null) { clearTimeout(msgTimer); msgTimer = null; }
+
+  // Cada inicio genera una sesión nueva. Los callbacks antiguos no podrán tocar el nivel nuevo.
+  levelSessionId++;
+  levelSessionId = levelSessionId >>> 0;
+  if (levelSessionId === 0) levelSessionId = 1;
+
+  currentWorld = clamp(parseInt(worldIdx, 10) || 0, 0, WORLDS.length - 1);
+  currentLevel = clamp(parseInt(levelIdx, 10) || 0, 0, WORLDS[currentWorld].levels.length - 1);
+
+  menu.style.display = 'none';
+  gameDiv.classList.add('active');
+  overlay.classList.remove('show');
+  resize();
+  overlay.innerHTML = '';
+
+  level = buildLevel(currentWorld, currentLevel);
+
+  player = {
+    x: 60, y: GROUND_Y - 100,
+    vx: 0, vy: 0,
+    w: PW, h: PH,
+    onGround: false, facing: 1, jumps: 0, jumpHeld: false, invuln: 0,
+    coyote: 0, jumpBuffer: 0,
+    walkFrame: 0,
+    animTimer: 0
+  };
+
+  lives = 3;
+  goodGot = 0;
+  points = 0;
+  badCount = 0;
+  elapsed = 0;
+  timeRemaining = level.config.timeLimit;
+  startTime = performance.now();
+  camX = 0;
+  particles = [];
+  floaters = [];
+  screenFlash = null;
+  projectiles = [];
+  ambientParticles = [];
+  ambientTimer = 0;
+  running = true;
+  paused = false;
+  lastCheckpoint = { x: 60, y: GROUND_Y - 100 };
+
+  keys = {};
+  touch.left = touch.right = touch.jump = false;
+  jumpQueued = false;
+  // Limpiar clases de botones
+  var btns = document.querySelectorAll('.btn');
+  for (var bi = 0; bi < btns.length; bi++) btns[bi].classList.remove('pressed');
+
+  if (level.config.timeLimitActive) {
+    hudTimer.style.display = 'inline-block';
+    hudTimer.classList.remove('danger');
+  } else {
+    hudTimer.style.display = 'none';
+  }
+
+  updateHUD();
+  showProblemModal();
+}
+
+function showProblemModal() {
+  var data = WORLDS[currentWorld].levels[currentLevel];
+  var cfg = level.config;
+  running = false;
+  paused = false;
+
+  var diffLabel = 'FACIL';
+  if (cfg.diff >= 5) diffLabel = 'NORMAL';
+  if (cfg.diff >= 10) diffLabel = 'DIFICIL';
+  if (cfg.diff >= 15) diffLabel = 'EXPERTO';
+  if (cfg.diff >= 18) diffLabel = 'MAESTRO';
+
+  var extras = [];
+  if (cfg.enemiesFlying > 0) extras.push('🦇 VOLADORES');
+  if (cfg.enemiesShooter > 0) extras.push('🎯 PROYECTILES');
+  if (cfg.fragilePlatforms > 0) extras.push('🪨 FRAGILES');
+  if (cfg.timeLimitActive) extras.push('⏰ TIEMPO LIMITE');
+
+  overlay.innerHTML =
+    '<h2>PROBLEMATICA</h2>' +
+    '<div class="problem-box">' +
+      '<div class="label">SITUACION</div>' +
+      data.problem +
+    '</div>' +
+    '<div class="diff-box">' +
+      'DIFICULTAD: ' + diffLabel + ' (NIVEL ' + cfg.diff + '/20)<br>' +
+      'ENEMIGOS: ' + (cfg.enemiesGround + cfg.enemiesFlying + cfg.enemiesShooter) +
+      ' · OBSTACULOS: ' + (cfg.hazards + cfg.walls) +
+      ' · PLATAFORMAS: ' + cfg.zones +
+    '</div>' +
+    (cfg.timeLimitActive ?
+      '<div class="time-box">' +
+      '⏰ TIEMPO LIMITE: ' + formatTime(cfg.timeLimit) +
+      '</div>' : '') +
+    (extras.length > 0 ?
+      '<div class="diff-box">' +
+      'PELIGROS: ' + extras.join(' · ') +
+      '</div>' : '') +
+    '<div class="hint-box">' +
+      '<div class="label">TU MISION</div>' +
+      'LOS CONSEJOS <strong>SE VEN TODOS IGUALES</strong>. LEE EL TEXTO ANTES DE TOCARLOS.<br>' +
+      'RECOGE LOS <strong>' + data.good.length + ' BUENOS ✅</strong>. EVITA LOS <strong>MALOS ❌</strong>.' +
+    '</div>' +
+    '<button id="ov-start">COMENZAR</button>';
+
+  overlay.classList.add('show');
+
+  $('ov-start').onclick = function() {
+    overlay.classList.remove('show');
+    overlay.innerHTML = '';
+    paused = false;
+    running = true;
+    startTime = performance.now();
+    lastT = performance.now();
+    rafId = requestAnimationFrame(loop);
+    showMsg('NIVEL ' + (currentWorld + 1) + '-' + (currentLevel + 1), 'good');
+  };
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  var hearts = '';
+  for (var i = 0; i < 3; i++) hearts += (i < lives ? '❤' : '🖤');
+  hudLives.textContent = hearts;
+  hudGood.textContent = '✅ ' + goodGot + '/' + goodTotal;
+  hudPoints.textContent = '⭐ ' + points;
+  hudBad.textContent = '❌ ' + badCount + '/' + MAX_BAD;
+  hudLevel.textContent = (currentWorld + 1) + '-' + (currentLevel + 1);
+  hudTime.textContent = formatTime(elapsed);
+
+  if (level && level.config.timeLimitActive) {
+    hudTimer.textContent = '⏰ ' + formatTime(Math.max(0, timeRemaining));
+    if (timeRemaining < 30) hudTimer.classList.add('danger');
+    else hudTimer.classList.remove('danger');
+  }
+}
+
+function showMsg(text, kind) {
+  msgBox.textContent = text;
+  msgBox.classList.remove('bad', 'good');
+  if (kind === 'bad') msgBox.classList.add('bad');
+  else if (kind === 'good') msgBox.classList.add('good');
+  msgBox.classList.add('show');
+  if (msgTimer !== null) clearTimeout(msgTimer);
+  msgTimer = setTimeout(function() {
+    msgBox.classList.remove('show');
+    msgTimer = null;
+  }, 3400);
+}
+
+function burst(x, y, color, n) {
+  for (var i = 0; i < n; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8 - 2,
+      life: 0.8, max: 0.8,
+      color: color, size: 3 + Math.random() * 3
+    });
+  }
+}
+
+function addFloater(x, y, text, color) {
+  floaters.push({
+    x: x, y: y, text: text, color: color,
+    life: 1.2, max: 1.2
+  });
+}
+
+function flashScreen(color) {
+  screenFlash = { color: color, life: 0.4, max: 0.4 };
+}
+
+// ============================================================
+// DAÑO Y RESPAWN
+// ============================================================
+function hit(reason) {
+  if (!running || !player || player.invuln > 0) return;
+  lives = Math.max(0, lives - 1);
+  updateHUD();
+  burst(player.x + PW/2, player.y + PH/2, '#ef4444', 12);
+  flashScreen('rgba(239,68,68,0.35)');
+  player.invuln = INVULN_TIME;
+
+  if (lives <= 0) {
+    running = false;
+    showMsg('SIN VIDAS. ' + reason, 'bad');
+    var session = levelSessionId;
+    respawnTimer = setTimeout(function() {
+      if (session !== levelSessionId || !level || !player) return;
+      resetAfterGameOver(true);
+    }, 1400);
+  } else {
+    showMsg(reason, 'bad');
+    respawnAtCheckpoint();
+  }
+}
+
+function resetAfterGameOver(applyPointPenalty) {
+  if (!level || !player) return;
+  lives = 3;
+  badCount = 0;
+  if (applyPointPenalty) points = Math.max(0, points - 200);
+  if (level.config.timeLimitActive) timeRemaining = level.config.timeLimit;
+
+  for (var i = 0; i < level.badAdvices.length; i++) {
+    level.badAdvices[i].taken = false;
+  }
+  for (var j = 0; j < level.platforms.length; j++) {
+    var pl = level.platforms[j];
+    if (pl.kind === 'fragile') {
+      pl.state = 'idle';
+      pl.timer = 0;
+      pl.respawnTimer = 0;
+      pl.y = pl.origY;
+      pl.fallVY = 0;
+    }
+  }
+  projectiles = [];
+  ambientParticles = [];
+  respawnAtCheckpoint();
+  player.invuln = INVULN_TIME;
+  running = true;
+  respawnTimer = null;
+  startTime = performance.now() - elapsed * 1000;
+  lastT = performance.now();
+  updateHUD();
+}
+
+function respawnAtCheckpoint() {
+  player.x = lastCheckpoint.x;
+  player.y = lastCheckpoint.y;
+  player.vx = 0; player.vy = 0;
+  player.jumps = 0;
+  player.onGround = false;
+  player.jumpHeld = false;
+  player.coyote = 0;
+  player.jumpBuffer = 0;
+  jumpQueued = false;
+  camX = clamp(player.x - W/2, 0, Math.max(0, level.width - W));
+}
+
+// ============================================================
+// PARTÍCULAS AMBIENTALES
+// ============================================================
+function spawnAmbient() {
+  var world = WORLDS[currentWorld];
+  var camLeft = camX - 100;
+  var camRight = camX + W + 100;
+
+  var px = camLeft + Math.random() * (camRight - camLeft);
+  var py = -20;
+
+  if (world.ambient === 'leaves') {
+    ambientParticles.push({
+      x: px, y: py, vx: -0.5 + Math.random(), vy: 0.8 + Math.random() * 0.5,
+      color: '#4ade80', size: 4, life: 8, max: 8, type: 'leaf'
+    });
+  } else if (world.ambient === 'sparks') {
+    ambientParticles.push({
+      x: px, y: py + Math.random() * 300, vx: -0.3 + Math.random() * 0.6,
+      vy: -0.3 + Math.random() * 0.5, color: '#a78bfa', size: 3,
+      life: 5, max: 5, type: 'spark'
+    });
+  } else if (world.ambient === 'petals') {
+    ambientParticles.push({
+      x: px, y: py, vx: -0.4 + Math.random() * 0.8, vy: 0.6 + Math.random() * 0.4,
+      color: '#f472b6', size: 5, life: 9, max: 9, type: 'petal'
+    });
+  } else if (world.ambient === 'embers') {
+    ambientParticles.push({
+      x: px, y: py + Math.random() * 200, vx: -0.5 + Math.random() * 1.0,
+      vy: -0.5 + Math.random() * 0.6, color: '#f97316', size: 3,
+      life: 4, max: 4, type: 'ember'
+    });
+  } else if (world.ambient === 'static') {
+    ambientParticles.push({
+      x: px, y: py + Math.random() * 400, vx: -1 + Math.random() * 2,
+      vy: -0.8 + Math.random() * 1.6, color: '#f87171', size: 2,
+      life: 2, max: 2, type: 'static'
+    });
+  }
+}
+
+function updateAmbient(dt) {
+  for (var i = ambientParticles.length - 1; i >= 0; i--) {
+    var ap = ambientParticles[i];
+    ap.x += ap.vx * dt;
+    ap.y += ap.vy * dt;
+    if (ap.type === 'leaf' || ap.type === 'petal') {
+      ap.x += Math.sin(ap.y * 0.05) * 0.3;
+    }
+    ap.life -= dt * 0.03;
+    if (ap.life <= 0) ambientParticles.splice(i, 1);
+  }
+}
+
+// ============================================================
+// UPDATE
+// ============================================================
+function update(dt) {
+  if (!running || paused) return;
+  elapsed = (performance.now() - startTime) / 1000;
+  if (player.invuln > 0) player.invuln = Math.max(0, player.invuln - dt * 0.06);
+
+  // ---- TIEMPO LÍMITE ----
+  if (level.config.timeLimitActive) {
+    timeRemaining -= dt / 60;
+    if (timeRemaining <= 0) {
+      timeRemaining = 0;
+      // Solo quitar una vida, no las tres de golpe
+      if (player.invuln <= 0) {
+        lives--;
+        player.invuln = INVULN_TIME;
+        burst(player.x + PW/2, player.y + PH/2, '#ef4444', 12);
+        flashScreen('rgba(239,68,68,0.35)');
+        updateHUD();
+        if (lives <= 0) {
+          running = false;
+          showMsg('SE ACABO EL TIEMPO', 'bad');
+          var session = levelSessionId;
+          respawnTimer = setTimeout(function() {
+            if (session !== levelSessionId || !level || !player) return;
+            resetAfterGameOver(false);
+          }, 1400);
+          return;
+        } else {
+          showMsg('SE ACABO EL TIEMPO. PERDISTE UNA VIDA', 'bad');
+          timeRemaining = level.config.timeLimit;
+          respawnAtCheckpoint();
+        }
+      }
+    }
+  }
+
+  // ---- PARTÍCULAS AMBIENTALES ----
+  ambientTimer += dt;
+  if (ambientTimer > 6) {
+    ambientTimer = 0;
+    spawnAmbient();
+  }
+  updateAmbient(dt);
+
+  // ---- INPUT ----
+  var mvx = 0;
+  if (keys['arrowleft'] || keys['a'] || touch.left) mvx -= 1;
+  if (keys['arrowright'] || keys['d'] || touch.right) mvx += 1;
+  var speed = keys['shift'] ? RUN : SPEED;
+  player.vx = mvx * speed;
+  if (mvx !== 0) player.facing = mvx;
+
+  if (mvx !== 0 && player.onGround) {
+    player.animTimer += dt * 0.1;
+    if (player.animTimer > 1) {
+      player.walkFrame = (player.walkFrame + 1) % 4;
+      player.animTimer = 0;
+    }
+  } else {
+    player.walkFrame = 0;
+  }
+
+  // Coyote time + jump buffer: hacen que el salto táctil sea tolerante
+  // a pequeñas diferencias de tiempo entre el dedo y el frame de física.
+  if (player.onGround) player.coyote = COYOTE_FRAMES;
+  else player.coyote = Math.max(0, player.coyote - dt);
+
+  if (jumpQueued) {
+    player.jumpBuffer = JUMP_BUFFER_FRAMES;
+    jumpQueued = false;
+  } else {
+    player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
+  }
+
+  var keyJumpHeld = keys['arrowup'] || keys[' '] || keys['w'] || touch.jump;
+  if (player.jumpBuffer > 0 && !player.jumpHeld) {
+    if (player.onGround || player.coyote > 0) {
+      player.vy = JUMP;
+      player.jumps = 1;
+      player.coyote = 0;
+      burst(player.x + PW/2, player.y + PH, '#4ade80', 5);
+      player.jumpBuffer = 0;
+      player.jumpHeld = true;
+    } else if (player.jumps < 2) {
+      player.vy = JUMP * 0.9;
+      player.jumps = 2;
+      burst(player.x + PW/2, player.y + PH, '#22d3ee', 6);
+      player.jumpBuffer = 0;
+      player.jumpHeld = true;
+    }
+  }
+  if (!keyJumpHeld) player.jumpHeld = false;
+
+  // ---- FÍSICA ----
+  player.vy = Math.min(player.vy + GRAVITY, MAX_FALL);
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+
+  // ---- ACTUALIZAR PLATAFORMAS FRÁGILES ----
+  for (var fp = 0; fp < level.platforms.length; fp++) {
+    var frp = level.platforms[fp];
+    if (frp.kind !== 'fragile') continue;
+
+    if (frp.state === 'shaking') {
+      frp.timer -= dt * 0.05;
+      if (frp.timer <= 0) {
+        frp.state = 'falling';
+        frp.fallVY = 0;
+      }
+    } else if (frp.state === 'falling') {
+      frp.fallVY += 0.8;
+      frp.y += frp.fallVY * dt;
+      if (frp.y > GROUND_Y + 200) {
+        frp.state = 'gone';
+        frp.respawnTimer = 180;
+      }
+    } else if (frp.state === 'gone') {
+      frp.respawnTimer -= dt;
+      if (frp.respawnTimer <= 0) {
+        // Solo reaparecer si el jugador no está encima
+        var playerAbove = player.x + player.w > frp.origX - 10 &&
+                          player.x < frp.origX + frp.w + 10 &&
+                          Math.abs(player.y - frp.origY) < 60;
+        if (!playerAbove) {
+          frp.state = 'idle';
+          frp.y = frp.origY;
+          frp.fallVY = 0;
+          burst(frp.x + frp.w/2, frp.y, '#94a3b8', 6);
+        }
+      }
+    }
+  }
+
+  // ---- COLISIÓN PLATAFORMAS ----
+  player.onGround = false;
+  for (var i = 0; i < level.platforms.length; i++) {
+    var pl = level.platforms[i];
+    if (pl.kind === 'fragile' && (pl.state === 'falling' || pl.state === 'gone')) continue;
+    if (player.x + player.w <= pl.x || player.x >= pl.x + pl.w) continue;
+    if (player.vy < 0) continue;
+    var prevBottom = player.y + player.h - player.vy * dt;
+    if (prevBottom <= pl.y + 6 && player.y + player.h >= pl.y) {
+      player.y = pl.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+      if (pl.kind === 'fragile' && pl.state === 'idle') {
+        pl.state = 'shaking';
+        pl.timer = 1.0;
+        burst(pl.x + pl.w/2, pl.y, '#fbbf24', 6);
+      }
+    }
+  }
+  if (player.onGround) player.jumps = 0;
+
+  // ---- MUROS ----
+  for (var wi = 0; wi < level.walls.length; wi++) {
+    var wl = level.walls[wi];
+    if (aabb(player, wl)) {
+      var cp = player.x + player.w / 2;
+      var cw = wl.x + wl.w / 2;
+      if (cp < cw) player.x = wl.x - player.w;
+      else player.x = wl.x + wl.w;
+      player.vx = 0;
+    }
+  }
+
+  player.x = clamp(player.x, 0, level.width - player.w);
+
+  if (player.y > H + 400) {
+    hit('CAISTE EN UN POZO');
+    return;
+  }
+
+  // ---- PELIGROS ----
+  for (var hi = 0; hi < level.hazards.length; hi++) {
+    if (aabb(player, level.hazards[hi])) {
+      hit('TOPASTE CON UNA BARRERA');
+      return;
+    }
+  }
+
+  // ---- ENEMIGOS ----
+  for (var ei = 0; ei < level.enemies.length; ei++) {
+    var en = level.enemies[ei];
+    if (!en.alive) { if (en.gone) en.fade += dt * 0.03; continue; }
+
+    if (en.kind === 'ground') {
+      en.x += en.vx * dt;
+      if (en.x < en.minX) { en.x = en.minX; en.vx *= -1; }
+      if (en.x > en.maxX) { en.x = en.maxX; en.vx *= -1; }
+      en.walkFrame = (en.walkFrame || 0) + dt * 0.15;
+
+      if (en.jumper) {
+        en.jumpTimer += dt * 0.05;
+        en.vy += GRAVITY;
+        en.y += en.vy * dt;
+        if (en.y >= en.baseY) {
+          en.y = en.baseY;
+          en.vy = 0;
+          if (en.jumpTimer > 1.5) {
+            en.vy = -8;
+            en.jumpTimer = 0;
+          }
+        }
+      }
+    } else if (en.kind === 'flying') {
+      en.phase += dt * 0.06;
+      en.y = en.baseY + Math.sin(en.phase) * en.amplitude;
+      en.x += en.vx * dt;
+      if (en.x < en.minX) { en.x = en.minX; en.vx *= -1; }
+      if (en.x > en.maxX) { en.x = en.maxX; en.vx *= -1; }
+    } else if (en.kind === 'shooter') {
+      en.x += en.vx * dt;
+      if (en.x < en.minX) { en.x = en.minX; en.vx *= -1; }
+      if (en.x > en.maxX) { en.x = en.maxX; en.vx *= -1; }
+
+      en.shootCooldown -= dt * 0.06;
+      var distToPlayer = Math.abs(player.x - en.x);
+      var dyToPlayer = player.y - en.y;
+      // Solo dispara si el jugador está cerca y a una altura similar o más abajo
+      if (en.shootCooldown <= 0 && distToPlayer < en.shootRange &&
+          player.x > en.x - 100 && dyToPlayer > -60) {
+        var dx = player.x + player.w/2 - (en.x + en.w/2);
+        var dy = player.y + player.h/2 - (en.y + en.h/2);
+        var len = Math.sqrt(dx*dx + dy*dy) || 1;
+        projectiles.push({
+          x: en.x + en.w/2, y: en.y + en.h/2,
+          vx: dx / len * 4,
+          vy: dy / len * 4,
+          w: 10, h: 10,
+          life: 3.0, max: 3.0
+        });
+        en.shootCooldown = en.shootInterval;
+      }
+    }
+
+    if (aabb(player, en)) {
+      var onTop = player.vy > 0 && (player.y + player.h - player.vy * dt) <= en.y + 10;
+      if (onTop && en.kind !== 'flying' && en.kind !== 'shooter') {
+        en.alive = false; en.gone = true;
+        player.vy = JUMP * 0.7;
+        burst(en.x + en.w/2, en.y + en.h/2, '#f4c95d', 14);
+        points += 50;
+        addFloater(en.x + en.w/2, en.y - 10, '+50', '#f4c95d');
+        flashScreen('rgba(244,201,93,0.25)');
+        showMsg('ESTEREOTIPO TRANSFORMADO +50', 'good');
+      } else {
+        hit('UN ESTEREOTIPO TE DETUVO');
+        return;
+      }
+    }
+  }
+
+  // ---- PROYECTILES ----
+  for (var pri = projectiles.length - 1; pri >= 0; pri--) {
+    var pr = projectiles[pri];
+    pr.x += pr.vx * dt;
+    pr.y += pr.vy * dt;
+    pr.life -= dt * 0.03;
+
+    if (pr.life <= 0 || pr.x < -100 || pr.x > level.width + 100 ||
+        pr.y < -100 || pr.y > H + 100) {
+      projectiles.splice(pri, 1);
+      continue;
+    }
+
+    if (aabb(player, pr)) {
+      projectiles.splice(pri, 1);
+      hit('UN PROYECTIL TE ALCANZO');
+      return;
+    }
+  }
+
+  // ---- CONSEJOS BUENOS ----
+  for (var gi = 0; gi < level.goodAdvices.length; gi++) {
+    var g = level.goodAdvices[gi];
+    if (g.taken) continue;
+    if (Math.abs(player.x + player.w/2 - g.x) < 30 &&
+        Math.abs(player.y + player.h/2 - g.y) < 30) {
+      g.taken = true;
+      goodGot++;
+      points += POINTS_GOOD;
+      burst(g.x, g.y, '#4ade80', 18);
+      addFloater(g.x, g.y - 20, '+' + POINTS_GOOD, '#4ade80');
+      flashScreen('rgba(34,197,94,0.25)');
+      showMsg('✅ ' + g.text + ' (+' + POINTS_GOOD + ')', 'good');
+      if (goodGot >= goodTotal) {
+        setTimeout(function() {
+          showMsg('TIENES TODAS LAS SOLUCIONES! META DESBLOQUEADA', 'good');
+        }, 1200);
+      }
+    }
+  }
+
+  // ---- CONSEJOS MALOS ----
+  for (var bi = 0; bi < level.badAdvices.length; bi++) {
+    var bad = level.badAdvices[bi];
+    if (bad.taken) continue;
+    if (Math.abs(player.x + player.w/2 - bad.x) < 30 &&
+        Math.abs(player.y + player.h/2 - bad.y) < 30) {
+      bad.taken = true;
+      points = Math.max(0, points + POINTS_BAD);
+      badCount++;
+      burst(bad.x, bad.y, '#ef4444', 14);
+      addFloater(bad.x, bad.y - 20, POINTS_BAD, '#f87171');
+      flashScreen('rgba(239,68,68,0.35)');
+      if (badCount >= MAX_BAD) {
+        badCount = 0;
+        for (var bj = 0; bj < level.badAdvices.length; bj++) {
+          level.badAdvices[bj].taken = false;
+        }
+        showMsg('DEMASIADOS CONSEJOS MALOS! PIERDES UNA VIDA', 'bad');
+        player.invuln = 0;
+        hit('LOS CONSEJOS NEGATIVOS TE AFECTARON');
+        return;
+      } else {
+        showMsg('❌ ' + bad.text + ' (' + POINTS_BAD + ')', 'bad');
+      }
+    }
+  }
+
+  // ---- CHECKPOINTS ----
+  for (var ci = 0; ci < level.checkpoints.length; ci++) {
+    var cp2 = level.checkpoints[ci];
+    if (aabb(player, cp2)) {
+      if (cp2.x > lastCheckpoint.x) {
+        lastCheckpoint = { x: cp2.x, y: cp2.y - 40 };
+        if (!cp2.active) {
+          cp2.active = true;
+          burst(cp2.x + 10, cp2.y + 30, '#22d3ee', 12);
+          showMsg('CHECKPOINT', 'good');
+        }
+      }
+    }
+  }
+
+  // ---- META ----
+  if (aabb(player, level.goal)) {
+    if (goodGot >= goodTotal) {
+      win();
+      return;
+    } else {
+      if (!level._blockMsgTime || performance.now() - level._blockMsgTime > 2000) {
+        level._blockMsgTime = performance.now();
+        var faltan = goodTotal - goodGot;
+        showMsg('META BLOQUEADA. FALTAN ' + faltan, 'bad');
+      }
+    }
+  }
+
+  // ---- CÁMARA ----
+  var maxCam = Math.max(0, level.width - W);
+  var leftSafe = camX + W * 0.34;
+  var rightSafe = camX + W * 0.66;
+  var desiredCam = camX;
+
+  // La cámara solo avanza cuando el jugador sale de una zona central.
+  // Así el recorrido es estable y no se mueve continuamente bajo los pies.
+  if (player.x < leftSafe) {
+    desiredCam = player.x - W * 0.34;
+  } else if (player.x + player.w > rightSafe) {
+    desiredCam = player.x + player.w - W * 0.66;
+  }
+
+  desiredCam = clamp(desiredCam, 0, maxCam);
+  var camDiff = desiredCam - camX;
+  if (Math.abs(camDiff) > W * 0.18) camX = desiredCam;
+  else camX += camDiff * 0.24;
+  camX = clamp(camX, 0, maxCam);
+
+  // ---- PARTÍCULAS ----
+  for (var pi = particles.length - 1; pi >= 0; pi--) {
+    var pt = particles[pi];
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 0.3;
+    pt.life -= dt * 0.04;
+    if (pt.life <= 0) particles.splice(pi, 1);
+  }
+
+  // ---- FLOATERS ----
+  for (var fi = floaters.length - 1; fi >= 0; fi--) {
+    var fl = floaters[fi];
+    fl.y -= dt * 1.2;
+    fl.life -= dt * 0.025;
+    if (fl.life <= 0) floaters.splice(fi, 1);
+  }
+
+  if (screenFlash) {
+    screenFlash.life -= dt * 0.04;
+    if (screenFlash.life <= 0) screenFlash = null;
+  }
+
+  updateHUD();
+}
+
+// ============================================================
+// VICTORIA
+// ============================================================
+function win() {
+  running = false;
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+
+  var stars = 1;
+  if (points >= 300) stars = 2;
+  if (points >= 500 && badCount === 0) stars = 3;
+
+  var p = save.progress[currentWorld];
+  p.done[currentLevel] = true;
+  if (stars > p.stars[currentLevel]) p.stars[currentLevel] = stars;
+  if (points > p.points[currentLevel]) p.points[currentLevel] = points;
+
+  if (currentLevel === 3 && currentWorld + 1 < 5) {
+    if (currentWorld + 2 > save.unlocked) save.unlocked = currentWorld + 2;
+  }
+  persistSave();
+
+  var starsHTML = '⭐'.repeat(stars) + '<span class="empty">' + '⭐'.repeat(3 - stars) + '</span>';
+
+  overlay.innerHTML =
+    '<h2>NIVEL COMPLETADO</h2>' +
+    '<div class="stars-big">' + starsHTML + '</div>' +
+    '<p>✅ CONSEJOS: ' + goodGot + '/' + goodTotal + '<br>' +
+      '⭐ PUNTOS: ' + points + '<br>' +
+      '⏱️ ' + formatTime(elapsed) + ' · ❤ ' + lives + '/3</p>' +
+    '<button id="ov-next">SIGUIENTE</button>' +
+    '<button id="ov-retry" class="alt">REINTENTAR</button>' +
+    '<button id="ov-menu" class="alt">MENU</button>';
+
+  overlay.classList.add('show');
+
+  $('ov-next').onclick = function() {
+    var w = currentWorld, l = currentLevel + 1;
+    if (l > 3) {
+      if (w < 4) { w++; l = 0; }
+      else { gotoMenu(); return; }
+    }
+    startLevel(w, l);
+  };
+  $('ov-retry').onclick = function() { startLevel(currentWorld, currentLevel); };
+  $('ov-menu').onclick = gotoMenu;
+}
+
+// ============================================================
+// MENÚ
+// ============================================================
+function gotoMenu() {
+  running = false;
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  if (respawnTimer !== null) { clearTimeout(respawnTimer); respawnTimer = null; }
+  if (msgTimer !== null) { clearTimeout(msgTimer); msgTimer = null; }
+  gameDiv.classList.remove('active');
+  if (rotateHint) rotateHint.classList.remove('show');
+  menu.style.display = 'flex';
+  menuMain.style.display = 'block';
+  menuWorlds.style.display = 'none';
+}
+
+function showMenuWorlds() {
+  menuMain.style.display = 'none';
+  menuWorlds.style.display = 'block';
+  var html = '<h2 style="color:#f4c95d;margin-bottom:16px;font-family:\'Press Start 2P\',monospace;font-size:10px;text-shadow:2px 2px 0 #000;letter-spacing:2px;">SELECCIONA NIVEL</h2>';
+  for (var w = 0; w < 5; w++) {
+    var unlockedWorld = w < save.unlocked;
+    html += '<div class="world-block">';
+    html += '<div class="world-title">' + (unlockedWorld ? '' : '🔒 ') + 'MUNDO ' + (w + 1) + '</div>';
+    html += '<div class="levels-row">';
+    for (var l = 0; l < 4; l++) {
+      var done = save.progress[w].done[l];
+      var stars = save.progress[w].stars[l];
+      var unlocked = unlockedWorld && (l === 0 || save.progress[w].done[l-1]);
+      var cls = 'level-btn';
+      if (!unlocked) cls += ' locked';
+      if (done) cls += ' done';
+      var label = (w + 1) + '-' + (l + 1);
+      var starTxt = unlocked ? (done ? '⭐'.repeat(stars) : '—') : '🔒';
+      var diff = w * 4 + l + 1;
+      var dLabel = diff <= 4 ? '●○○' : diff <= 8 ? '●●○' : diff <= 14 ? '●●●' : '●●●+';
+      html += '<button class="' + cls + '" data-w="' + w + '" data-l="' + l + '">' +
+              '<span>' + label + '</span>' +
+              '<span class="stars">' + starTxt + '</span>' +
+              '<span class="diff">' + dLabel + '</span>' +
+              '</button>';
+    }
+    html += '</div></div>';
+  }
+  html += '<button class="alt" id="back-main" style="margin-top:16px;">VOLVER</button>';
+  menuWorlds.innerHTML = html;
+
+  var btns = menuWorlds.querySelectorAll('.level-btn:not(.locked)');
+  for (var i = 0; i < btns.length; i++) {
+    (function(btn) {
+      btn.onclick = function() {
+        startLevel(parseInt(btn.dataset.w), parseInt(btn.dataset.l));
+      };
+    })(btns[i]);
+  }
+  $('back-main').onclick = function() {
+    menuMain.style.display = 'block';
+    menuWorlds.style.display = 'none';
+  };
+}
+
+// ============================================================
+// DIBUJO
+// ============================================================
+function draw() {
+  var world = WORLDS[currentWorld];
+  var bg = world.bg || '#0a0e1a';
+
+  var grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, world.skyTop || bg);
+  grad.addColorStop(0.7, world.skyBot || '#0a0e1a');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  if (!level || !player) return;
+
+  // Estrellas titilantes
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (var i = 0; i < 40; i++) {
+    var sx = ((i * 137) % W + (camX * 0.05)) % W;
+    var sy = (i * 79) % (H * 0.5);
+    var twinkle = Math.sin(performance.now() / 500 + i) * 0.5 + 0.5;
+    ctx.globalAlpha = 0.3 + twinkle * 0.5;
+    ctx.fillRect(sx, sy, 2, 2);
+  }
+  ctx.globalAlpha = 1;
+
+  // Luna
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(W - 120 - camX * 0.02, 80, 50, 50);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillRect(W - 110 - camX * 0.02, 90, 30, 30);
+
+  // Montañas lejanas
+  ctx.fillStyle = world.bgLayer1 || 'rgba(255,255,255,0.05)';
+  var mountW = 140, mountH = 120;
+  for (var m = 0; m < 20; m++) {
+    var mx = (m * (mountW + 10) - camX * 0.15) % (W + mountW * 2) - mountW;
+    ctx.beginPath();
+    ctx.moveTo(mx, H);
+    ctx.lineTo(mx + mountW / 2, H - mountH);
+    ctx.lineTo(mx + mountW, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Colinas cercanas
+  ctx.fillStyle = world.bgLayer2 || 'rgba(255,255,255,0.08)';
+  var mountW2 = 100, mountH2 = 70;
+  for (var m2 = 0; m2 < 20; m2++) {
+    var mx2 = (m2 * (mountW2 + 30) - camX * 0.3) % (W + mountW2 * 2) - mountW2;
+    ctx.beginPath();
+    ctx.moveTo(mx2, H);
+    ctx.lineTo(mx2 + mountW2 / 2, H - mountH2);
+    ctx.lineTo(mx2 + mountW2, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Silueta temática
+  drawSilhouette(world.silhouette);
+
+  ctx.save();
+  ctx.translate(-Math.floor(camX), 0);
+
+  // ---- PLATAFORMAS ----
+  for (var pi = 0; pi < level.platforms.length; pi++) {
+    var p = level.platforms[pi];
+
+    if (p.kind === 'fragile') {
+      if (p.state === 'gone') continue;
+      var shakeX = 0;
+      if (p.state === 'shaking') {
+        shakeX = Math.sin(performance.now() / 40) * 2;
+      }
+      ctx.fillStyle = p.state === 'shaking' ? '#fbbf24' : '#78716c';
+      ctx.fillRect(p.x + shakeX, p.y, p.w, p.h);
+      ctx.fillStyle = p.state === 'shaking' ? '#fde68a' : '#a8a29e';
+      ctx.fillRect(p.x + shakeX, p.y, p.w, 4);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(p.x + shakeX + 8, p.y + 6, 3, 8);
+      ctx.fillRect(p.x + shakeX + 20, p.y + 10, 2, 6);
+      ctx.fillRect(p.x + shakeX + p.w - 14, p.y + 6, 3, 10);
+      ctx.fillRect(p.x + shakeX + p.w - 26, p.y + 12, 2, 4);
+    } else if (p.kind === 'float') {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(p.x + 2, p.y + p.h, p.w, 4);
+      ctx.fillStyle = '#0e7490';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillRect(p.x, p.y, p.w, 4);
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(p.x + 2, p.y + 1, p.w - 4, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(p.x + 4, p.y + 8, 3, 3);
+      ctx.fillRect(p.x + p.w - 7, p.y + 8, 3, 3);
+      ctx.fillRect(p.x + 4, p.y + p.h - 6, 3, 3);
+      ctx.fillRect(p.x + p.w - 7, p.y + p.h - 6, 3, 3);
+    } else {
+      ctx.fillStyle = '#064e3b';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(p.x, p.y, p.w, 8);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(p.x, p.y, p.w, 3);
+      ctx.fillStyle = '#22c55e';
+      for (var gx4 = 0; gx4 < p.w; gx4 += 6) {
+        var h4 = 3 + (Math.sin(gx4 * 0.5) + 1) * 2;
+        ctx.fillRect(p.x + gx4, p.y - h4, 4, h4);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      for (var gx3 = 8; gx3 < p.w; gx3 += TILE * 2) {
+        ctx.fillRect(p.x + gx3, p.y + 14, 6, 6);
+        ctx.fillRect(p.x + gx3 + 10, p.y + 28, 4, 4);
+        ctx.fillRect(p.x + gx3 + 4, p.y + 42, 5, 5);
+      }
+    }
+  }
+
+  // Muros
+  for (var wi = 0; wi < level.walls.length; wi++) {
+    var wl = level.walls[wi];
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(wl.x + 3, wl.y + 3, wl.w, wl.h);
+    ctx.fillStyle = '#7c2d12';
+    ctx.fillRect(wl.x, wl.y, wl.w, wl.h);
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(wl.x, wl.y, wl.w, 4);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    for (var wy = 8; wy < wl.h; wy += 10) {
+      ctx.fillRect(wl.x + ((wy/10) % 2) * 8, wl.y + wy, wl.w, 2);
+    }
+  }
+
+  // Peligros
+  for (var hi = 0; hi < level.hazards.length; hi++) {
+    var hz = level.hazards[hi];
+    if (hz.type === 'fire') {
+      for (var fx = 0; fx < hz.w; fx += 10) {
+        var flicker = Math.sin(performance.now() / 100 + fx) * 2;
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(hz.x + fx, hz.y + 4 + flicker, 6, hz.h - 4);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(hz.x + fx + 2, hz.y + flicker, 4, hz.h - 4);
+        ctx.fillStyle = '#fff7ed';
+        ctx.fillRect(hz.x + fx + 3, hz.y + 4 + flicker, 2, 4);
+      }
+    } else {
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.moveTo(hz.x, hz.y + hz.h);
+      var teeth = Math.max(1, Math.floor(hz.w / 10));
+      for (var t = 0; t < teeth; t++) {
+        ctx.lineTo(hz.x + t * 10 + 5, hz.y);
+        ctx.lineTo(hz.x + t * 10 + 10, hz.y + hz.h);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#cbd5e1';
+      for (var t2 = 0; t2 < teeth; t2++) {
+        ctx.fillRect(hz.x + t2 * 10 + 4, hz.y + 4, 2, hz.h - 4);
+      }
+    }
+  }
+
+  // Checkpoints
+  for (var ci = 0; ci < level.checkpoints.length; ci++) {
+    var cp = level.checkpoints[ci];
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(cp.x + 2, cp.y + 2, cp.w, cp.h);
+    ctx.fillStyle = cp.active ? '#16a34a' : '#475569';
+    ctx.fillRect(cp.x, cp.y, cp.w, cp.h);
+    ctx.fillStyle = cp.active ? '#4ade80' : '#64748b';
+    ctx.fillRect(cp.x, cp.y, cp.w, 6);
+    var wave = Math.sin(performance.now() / 200) * 2;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cp.x + cp.w - 2, cp.y - 30, 2, 30);
+    ctx.fillStyle = cp.active ? '#fbbf24' : '#64748b';
+    ctx.fillRect(cp.x + cp.w, cp.y - 20 + wave, 16, 12);
+  }
+
+  // Meta
+  var unlocked = goodGot >= goodTotal;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(level.goal.x + 3, level.goal.y + 3, level.goal.w, level.goal.h);
+  ctx.fillStyle = unlocked ? '#a16207' : '#334155';
+  ctx.fillRect(level.goal.x, level.goal.y, level.goal.w, level.goal.h);
+  ctx.fillStyle = unlocked ? '#f4c95d' : '#64748b';
+  ctx.fillRect(level.goal.x, level.goal.y, level.goal.w, 8);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  for (var gy3 = 20; gy3 < level.goal.h; gy3 += 16) {
+    ctx.fillRect(level.goal.x + 4, level.goal.y + gy3, level.goal.w - 8, 2);
+  }
+  ctx.fillStyle = unlocked ? '#fbbf24' : '#475569';
+  ctx.fillRect(level.goal.x - 4, level.goal.y - 6, level.goal.w + 8, 6);
+
+  if (unlocked) {
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(level.goal.x + 8, level.goal.y - 50, 34, 24);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(level.goal.x + 8, level.goal.y - 50, 34, 2);
+    ctx.fillRect(level.goal.x + 8, level.goal.y - 28, 34, 2);
+    ctx.fillRect(level.goal.x + 8, level.goal.y - 50, 2, 24);
+    ctx.fillRect(level.goal.x + 40, level.goal.y - 50, 2, 24);
+    ctx.fillStyle = '#ef4444';
+    for (var b1 = 0; b1 < 4; b1++) {
+      for (var b2 = 0; b2 < 2; b2++) {
+        if ((b1 + b2) % 2 === 0) {
+          ctx.fillRect(level.goal.x + 10 + b1 * 8, level.goal.y - 48 + b2 * 10, 8, 10);
+        }
+      }
+    }
+  } else {
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(level.goal.x + 12, level.goal.y - 36, 26, 24);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(level.goal.x + 18, level.goal.y - 44, 14, 10);
+    ctx.fillStyle = '#0a0e1a';
+    ctx.fillRect(level.goal.x + 22, level.goal.y - 28, 6, 10);
+  }
+
+  // ---- ENEMIGOS ----
+  for (var ei = 0; ei < level.enemies.length; ei++) {
+    var en = level.enemies[ei];
+    if (en.gone) {
+      ctx.globalAlpha = Math.max(0, 1 - en.fade);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(en.x + 4, en.y + 4, en.w - 8, en.h - 8);
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(en.x + 8, en.y + 8, en.w - 16, 6);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(en.x + 12, en.y + 12, 8, 8);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    if (!en.alive) continue;
+
+    var enemyColors = ['#dc2626', '#b91c1c', '#991b1b'];
+    var col = enemyColors[en.type];
+
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(en.x + 3, en.y + en.h + 1, en.w - 6, 3);
+
+    if (en.kind === 'ground') {
+      ctx.fillStyle = col;
+      ctx.fillRect(en.x + 4, en.y + 4, en.w - 8, en.h - 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(en.x + 4, en.y + 4, en.w - 8, 3);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(en.x + 7, en.y + 9, 7, 3);
+      ctx.fillRect(en.x + en.w - 14, en.y + 9, 7, 3);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(en.x + 8, en.y + 12, 6, 6);
+      ctx.fillRect(en.x + en.w - 14, en.y + 12, 6, 6);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(en.x + 10, en.y + 14, 3, 3);
+      ctx.fillRect(en.x + en.w - 12, en.y + 14, 3, 3);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(en.x + 10, en.y + en.h - 14, en.w - 20, 3);
+    } else if (en.kind === 'flying') {
+      var wingOffset = Math.sin(performance.now() / 80) * 4;
+      ctx.fillStyle = col;
+      ctx.fillRect(en.x - 4, en.y + 6 + wingOffset, 6, 12);
+      ctx.fillRect(en.x - 8, en.y + 10 + wingOffset, 4, 6);
+      ctx.fillRect(en.x + en.w - 2, en.y + 6 - wingOffset, 6, 12);
+      ctx.fillRect(en.x + en.w + 4, en.y + 10 - wingOffset, 4, 6);
+      ctx.fillRect(en.x, en.y, en.w, en.h);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(en.x, en.y, en.w, 3);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(en.x + 6, en.y + 7, 6, 6);
+      ctx.fillRect(en.x + en.w - 12, en.y + 7, 6, 6);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(en.x + 8, en.y + 9, 3, 3);
+      ctx.fillRect(en.x + en.w - 10, en.y + 9, 3, 3);
+    } else if (en.kind === 'shooter') {
+      ctx.fillStyle = col;
+      ctx.fillRect(en.x + 4, en.y + 4, en.w - 8, en.h - 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(en.x + 4, en.y + 4, en.w - 8, 3);
+      var cannonDir = player.x > en.x ? 1 : -1;
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(
+        cannonDir > 0 ? en.x + en.w - 4 : en.x - 8,
+        en.y + en.h/2 - 4, 12, 8
+      );
+      ctx.fillStyle = '#4b5563';
+      ctx.fillRect(
+        cannonDir > 0 ? en.x + en.w - 2 : en.x - 6,
+        en.y + en.h/2 - 2, 8, 4
+      );
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(en.x + 8, en.y + 12, 6, 6);
+      ctx.fillRect(en.x + en.w - 14, en.y + 12, 6, 6);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(en.x + 10, en.y + 14, 3, 3);
+      ctx.fillRect(en.x + en.w - 12, en.y + 14, 3, 3);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(en.x + 6, en.y + en.h - 10, 4, 4);
+      ctx.fillRect(en.x + en.w - 10, en.y + en.h - 10, 4, 4);
+    }
+  }
+
+  // ---- PROYECTILES ----
+  for (var pri = 0; pri < projectiles.length; pri++) {
+    var pr = projectiles[pri];
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(Math.floor(pr.x) - Math.floor(pr.vx * 2) - 4,
+                 Math.floor(pr.y) - Math.floor(pr.vy * 2) - 4, 6, 6);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(Math.floor(pr.x) - 5, Math.floor(pr.y) - 5, 10, 10);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(Math.floor(pr.x) - 3, Math.floor(pr.y) - 3, 6, 6);
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(Math.floor(pr.x) - 1, Math.floor(pr.y) - 1, 2, 2);
+  }
+
+  // ---- CONSEJOS ----
+  var time = performance.now() / 1000;
+
+  function drawAdvice(a) {
+    var pulse = 0.5 + Math.sin(time * 2.5) * 0.5;
+    ctx.globalAlpha = 0.25 * pulse;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(a.x - 26, a.y - 26, 52, 52);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(a.x - 20 + 3, a.y - 20 + 3, 40, 40);
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(a.x - 20, a.y - 20, 40, 40);
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(a.x - 20, a.y - 20, 40, 4);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(a.x - 20, a.y - 20, 4, 40);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(a.x - 22, a.y - 22, 44, 2);
+    ctx.fillRect(a.x - 22, a.y + 20, 44, 2);
+    ctx.fillRect(a.x - 22, a.y - 22, 2, 44);
+    ctx.fillRect(a.x + 20, a.y - 22, 2, 44);
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(a.x - 6, a.y - 12, 12, 4);
+    ctx.fillRect(a.x + 4, a.y - 8, 4, 8);
+    ctx.fillRect(a.x - 2, a.y, 6, 4);
+    ctx.fillRect(a.x - 2, a.y + 8, 4, 4);
+
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(a.x - 6, a.y + 20, 12, 4);
+    ctx.fillRect(a.x - 3, a.y + 24, 6, 4);
+
+    // Texto dividido en líneas para que los mensajes no tapen plataformas
+    // cercanas ni se salgan del área visible del mundo.
+    ctx.font = '7px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var maxTextWidth = 250;
+    var words = String(a.text).split(/\s+/);
+    var lines = [];
+    var line = '';
+    for (var wi2 = 0; wi2 < words.length; wi2++) {
+      var candidate = line ? line + ' ' + words[wi2] : words[wi2];
+      if (ctx.measureText(candidate).width > maxTextWidth && line) {
+        lines.push(line);
+        line = words[wi2];
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) lines.push(line);
+    if (lines.length > 3) {
+      lines = lines.slice(0, 3);
+      var last = lines[2];
+      if (ctx.measureText(last + '...').width <= maxTextWidth) lines[2] = last + '...';
+    }
+
+    var lineH = 14;
+    var boxW = 0;
+    for (var li = 0; li < lines.length; li++) boxW = Math.max(boxW, ctx.measureText(lines[li]).width);
+    boxW = Math.min(maxTextWidth, boxW + 14);
+    var boxH = lines.length * lineH + 10;
+    var boxX = clamp(a.x - boxW / 2, camX + 8, camX + W - boxW - 8);
+    var boxY = a.y - 44 - boxH;
+
+    // Evita invadir el HUD fijo. Si el consejo está demasiado arriba,
+    // movemos el cartel justo debajo del icono.
+    if (boxY < 54) boxY = a.y + 30;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.92)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(boxX, boxY, boxW, 2);
+    ctx.fillRect(boxX, boxY + boxH - 2, boxW, 2);
+    ctx.fillStyle = '#e2e8f0';
+    for (var li2 = 0; li2 < lines.length; li2++) {
+      ctx.fillText(lines[li2], boxX + boxW / 2, boxY + 7 + lineH / 2 + li2 * lineH);
+    }
+  }
+
+  for (var gi = 0; gi < level.goodAdvices.length; gi++) {
+    var g = level.goodAdvices[gi];
+    if (g.taken) continue;
+    drawAdvice(g);
+  }
+  for (var bi = 0; bi < level.badAdvices.length; bi++) {
+    var bad = level.badAdvices[bi];
+    if (bad.taken) continue;
+    drawAdvice(bad);
+  }
+
+  // Ambientales
+  for (var api = 0; api < ambientParticles.length; api++) {
+    var ap = ambientParticles[api];
+    ctx.globalAlpha = Math.max(0, ap.life / ap.max) * 0.6;
+    ctx.fillStyle = ap.color;
+    ctx.fillRect(Math.floor(ap.x), Math.floor(ap.y), ap.size, ap.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Partículas
+  for (var pi2 = 0; pi2 < particles.length; pi2++) {
+    var pt = particles[pi2];
+    ctx.globalAlpha = Math.max(0, pt.life / pt.max);
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(Math.floor(pt.x), Math.floor(pt.y), pt.size, pt.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Floaters
+  for (var fi = 0; fi < floaters.length; fi++) {
+    var fl = floaters[fi];
+    ctx.globalAlpha = Math.max(0, fl.life / fl.max);
+    ctx.font = 'bold 14px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillText(fl.text, fl.x + 2, fl.y + 2);
+    ctx.fillStyle = fl.color;
+    ctx.fillText(fl.text, fl.x, fl.y);
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- JUGADOR ----
+  if (player) {
+    var blink = player.invuln > 0 && Math.floor(performance.now() / 100) % 2 === 0;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(player.x + 2, player.y + PH, PW - 4, 4);
+
+    if (!blink) {
+      var legOffset = 0;
+      if (!player.onGround) legOffset = -3;
+      else if (player.walkFrame === 1 || player.walkFrame === 3) legOffset = 2;
+      else if (player.walkFrame === 2) legOffset = -2;
+
+      // Piernas
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(player.x + 4, player.y + PH - 6, 8, 6 + legOffset);
+      ctx.fillRect(player.x + PW - 12, player.y + PH - 6, 8, 6 - legOffset);
+      // Zapatos
+      ctx.fillStyle = '#7c2d12';
+      ctx.fillRect(player.x + 2, player.y + PH - 2, 12, 4);
+      ctx.fillRect(player.x + PW - 14, player.y + PH - 2, 12, 4);
+
+      // Torso
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(player.x + 2, player.y + 8, PW - 4, PH - 14);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(player.x + 2, player.y + 8, PW - 4, 3);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(player.x + 4, player.y + PH - 12, PW - 8, 2);
+
+      // Brazos
+      var armSwing = 0;
+      if (player.walkFrame === 1) armSwing = -2;
+      else if (player.walkFrame === 3) armSwing = 2;
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(player.x - 2, player.y + 12 + armSwing, 5, 12);
+      ctx.fillRect(player.x + PW - 3, player.y + 12 - armSwing, 5, 12);
+
+      // Cabeza
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillRect(player.x + 3, player.y - 8, PW - 6, 14);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(player.x + 3, player.y + 3, PW - 6, 3);
+
+      // Pelo
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(player.x + 3, player.y - 10, PW - 6, 4);
+
+      // Gorra
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(player.x + 2, player.y - 12, PW - 4, 4);
+      var capDir = player.facing > 0 ? 1 : -1;
+      if (capDir > 0) ctx.fillRect(player.x + PW - 6, player.y - 8, 6, 3);
+      else ctx.fillRect(player.x, player.y - 8, 6, 3);
+
+      // Ojos
+      var dir = player.facing > 0 ? 1 : -1;
+      var eyeY = player.y - 4;
+      var eye1X = player.x + 8;
+      var eye2X = player.x + PW - 12;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(eye1X, eyeY, 5, 5);
+      ctx.fillRect(eye2X, eyeY, 5, 5);
+      ctx.fillStyle = '#0a0e1a';
+      var pupilOffset = dir > 0 ? 2 : 0;
+      ctx.fillRect(eye1X + pupilOffset, eyeY + 1, 2, 3);
+      ctx.fillRect(eye2X + pupilOffset, eyeY + 1, 2, 3);
+
+      // Boca
+      ctx.fillStyle = '#7c2d12';
+      ctx.fillRect(player.x + PW/2 - 3, player.y + 1, 6, 2);
+
+      // Mejillas
+      ctx.fillStyle = 'rgba(239,68,68,0.4)';
+      ctx.fillRect(player.x + 4, player.y - 1, 3, 2);
+      ctx.fillRect(player.x + PW - 7, player.y - 1, 3, 2);
+    }
+  }
+
+  ctx.restore();
+
+  if (screenFlash) {
+    ctx.globalAlpha = Math.max(0, screenFlash.life / screenFlash.max);
+    ctx.fillStyle = screenFlash.color;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ============================================================
+// SILUETAS TEMÁTICAS
+// ============================================================
+function drawSilhouette(type) {
+  ctx.save();
+
+  if (type === 'city') {
+    for (var i = 0; i < 15; i++) {
+      var bx = (i * 180 - camX * 0.4) % (W + 400) - 200;
+      var bw = 80 + (i % 3) * 40;
+      var bh = 100 + (i % 4) * 50;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx, H - bh - 60, bw, bh + 60);
+      ctx.fillStyle = 'rgba(251,191,36,0.4)';
+      for (var wy2 = 0; wy2 < bh - 20; wy2 += 20) {
+        for (var wx2 = 10; wx2 < bw - 10; wx2 += 15) {
+          if ((i + wy2 + wx2) % 3 === 0) {
+            ctx.fillRect(bx + wx2, H - bh - 60 + wy2 + 10, 6, 8);
+          }
+        }
+      }
+    }
+  } else if (type === 'castle') {
+    for (var i2 = 0; i2 < 10; i2++) {
+      var bx2 = (i2 * 260 - camX * 0.4) % (W + 500) - 250;
+      var bh2 = 150 + (i2 % 3) * 60;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx2, H - bh2 - 60, 100, bh2 + 60);
+      for (var a = 0; a < 5; a++) {
+        ctx.fillRect(bx2 + a * 22, H - bh2 - 70, 14, 15);
+      }
+      ctx.fillStyle = 'rgba(251,191,36,0.35)';
+      ctx.fillRect(bx2 + 40, H - bh2 - 20, 20, 30);
+    }
+  } else if (type === 'valley') {
+    for (var i3 = 0; i3 < 20; i3++) {
+      var bx3 = (i3 * 140 - camX * 0.4) % (W + 400) - 200;
+      var th = 60 + (i3 % 3) * 30;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx3 + 20, H - 40, 6, 40);
+      ctx.beginPath();
+      ctx.moveTo(bx3, H - 40);
+      ctx.lineTo(bx3 + 23, H - 40 - th);
+      ctx.lineTo(bx3 + 46, H - 40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(bx3 + 8, H - 40 - th * 0.6);
+      ctx.lineTo(bx3 + 23, H - 40 - th - 20);
+      ctx.lineTo(bx3 + 38, H - 40 - th * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (type === 'citadel') {
+    for (var i4 = 0; i4 < 8; i4++) {
+      var bx4 = (i4 * 300 - camX * 0.4) % (W + 500) - 250;
+      var bh4 = 200;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx4, H - bh4 - 60, 150, bh4 + 60);
+      ctx.beginPath();
+      ctx.arc(bx4 + 75, H - bh4 - 60, 55, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(251,191,36,0.3)';
+      ctx.fillRect(bx4 + 40, H - bh4 - 30, 20, 40);
+      ctx.fillRect(bx4 + 90, H - bh4 - 30, 20, 40);
+    }
+  } else if (type === 'tower') {
+    for (var i5 = 0; i5 < 12; i5++) {
+      var bx5 = (i5 * 180 - camX * 0.4) % (W + 400) - 200;
+      var bh5 = 250 + (i5 % 3) * 80;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(bx5 + 20, H - bh5 - 60, 60, bh5 + 60);
+      ctx.fillStyle = 'rgba(251,191,36,0.4)';
+      for (var wy3 = 0; wy3 < bh5 - 40; wy3 += 40) {
+        if ((i5 + wy3) % 2 === 0) {
+          ctx.fillRect(bx5 + 35, H - bh5 - 40 + wy3, 12, 18);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(bx5 + 48, H - bh5 - 80, 4, 25);
+      if (Math.floor(performance.now() / 500 + i5) % 2 === 0) {
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(bx5 + 46, H - bh5 - 84, 8, 6);
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// BUCLE
+// ============================================================
+function loop(t) {
+  var dt = Math.min((t - lastT) / 16.67, 2);
+  lastT = t;
+  if (running && !paused) update(dt);
+  draw();
+  if (gameDiv.classList.contains('active')) {
+    rafId = requestAnimationFrame(loop);
+  } else {
+    rafId = null;
+  }
+}
+
+// ============================================================
+// CONTROLES DE TECLADO
+// ============================================================
+window.addEventListener('keydown', function(e) {
+  var k = e.key.toLowerCase();
+  var wasDown = !!keys[k];
+  keys[k] = true;
+  if (k === 'arrowup' || k === ' ' || k === 'arrowleft' || k === 'arrowright') e.preventDefault();
+  if ((k === 'arrowup' || k === ' ' || k === 'w') && !wasDown) jumpQueued = true;
+  if (k === 'r' && gameDiv.classList.contains('active')) startLevel(currentWorld, currentLevel);
+});
+window.addEventListener('keyup', function(e) {
+  keys[e.key.toLowerCase()] = false;
+});
+window.addEventListener('blur', function() {
+  keys = {};
+  touch.left = touch.right = touch.jump = false;
+  jumpQueued = false;
+  var btns = document.querySelectorAll('.btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('pressed');
+});
+
+document.addEventListener('visibilitychange', function() {
+  var now = performance.now();
+  if (document.hidden) {
+    if (running && !paused) {
+      paused = true;
+      resumeAfterVisibility = true;
+      hiddenAt = now;
+    }
+    keys = {};
+    touch.left = touch.right = touch.jump = false;
+    jumpQueued = false;
+    var btns = document.querySelectorAll('.btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('pressed');
+  } else if (resumeAfterVisibility) {
+    var hiddenDuration = Math.max(0, now - hiddenAt);
+    startTime += hiddenDuration;
+    lastT = now;
+    paused = false;
+    resumeAfterVisibility = false;
+  }
+});
+
+// ============================================================
+// CONTROLES TÁCTILES (MÓVIL)
+// ============================================================
+var touchPointers = {};
+var touchButtonStates = {};
+function bindTouch(id, key) {
+  var el = $(id);
+  if (!el) return;
+  var ids = {};
+  touchButtonStates[key] = ids;
+
+  function sync() {
+    var active = Object.keys(ids).length > 0;
+    touch[key] = active;
+    el.classList.toggle('pressed', active);
+  }
+
+  function releasePointer(pointerId) {
+    if (!ids[pointerId]) return;
+    delete ids[pointerId];
+    delete touchPointers[pointerId];
+    sync();
+  }
+
+  el._releasePointer = releasePointer;
+
+  el.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    ids[e.pointerId] = true;
+    touchPointers[e.pointerId] = key;
+    if (key === 'jump') jumpQueued = true;
+    sync();
+  }, { passive:false });
+
+  el.addEventListener('pointerup', function(e) {
+    releasePointer(e.pointerId);
+  }, { passive:false });
+  el.addEventListener('pointercancel', function(e) {
+    releasePointer(e.pointerId);
+  }, { passive:false });
+}
+bindTouch('c-left', 'left');
+bindTouch('c-right', 'right');
+bindTouch('c-jump', 'jump');
+
+document.addEventListener('pointerup', function(e) {
+  var key = touchPointers[e.pointerId];
+  if (!key) return;
+  var el = $('c-' + key);
+  if (el && el._releasePointer) el._releasePointer(e.pointerId);
+});
+document.addEventListener('pointercancel', function(e) {
+  var key = touchPointers[e.pointerId];
+  if (!key) return;
+  var el = $('c-' + key);
+  if (el && el._releasePointer) el._releasePointer(e.pointerId);
+});
+
+// Los menús y paneles deben poder desplazarse; el gesto solo se bloquea dentro del juego.
+document.addEventListener('touchmove', function(e) {
+  var target = e.target;
+  var inGame = target && target.closest && target.closest('#game');
+  var inScrollPanel = target && target.closest && target.closest('#menu, #overlay');
+  if (inGame && !inScrollPanel && e.cancelable) e.preventDefault();
+}, { passive:false });
+document.addEventListener('gesturestart', function(e) { if (e.cancelable) e.preventDefault(); });
+document.addEventListener('gesturechange', function(e) { if (e.cancelable) e.preventDefault(); });
+document.addEventListener('gestureend', function(e) { if (e.cancelable) e.preventDefault(); });
+document.addEventListener('dblclick', function(e) { if (e.cancelable) e.preventDefault(); });
+
+// ============================================================
+// MENÚ — listeners
+// ============================================================
+$('btn-play').onclick = function() { showMenuWorlds(); };
+$('btn-help').onclick = function() {
+  var h = $('help-text');
+  h.style.display = h.style.display === 'block' ? 'none' : 'block';
+};
+$('btn-reset').onclick = function() {
+  if (confirm('BORRAR TODO EL PROGRESO?')) {
+    save = defaultSave();
+    persistSave();
+    showMenuWorlds();
+  }
+};
+
+// ============================================================
+// INIT
+// ============================================================
+resize();
+menuMain.style.display = 'block';
+menuWorlds.style.display = 'none';
+
+})();
+</script>
+</body>
+</html>
